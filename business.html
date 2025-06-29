@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เครื่องมือจัดการธุรกิจ</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f0f4f8;
+        }
+        .pastel-bg-blue { background-color: #e0f7fa; }
+        .pastel-bg-green { background-color: #e8f5e9; }
+        .pastel-bg-pink { background-color: #fce4ec; }
+        .pastel-bg-purple { background-color: #f3e5f5; }
+        .pastel-bg-yellow { background-color: #fffde7; }
+
+        .btn {
+            @apply px-6 py-3 rounded-lg shadow-md font-bold text-lg text-gray-700 transition-transform transform hover:scale-105;
+        }
+
+        .modal {
+            @apply fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50;
+        }
+        
+        .modal-content {
+            @apply bg-white p-8 rounded-xl shadow-2xl w-full max-w-2xl transform transition-all scale-95;
+        }
+
+        .page {
+            @apply hidden;
+        }
+
+        .active-page {
+            @apply block;
+        }
+        
+        /* Print styles */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #print-area, #print-area * {
+                visibility: visible;
+            }
+            #print-area {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div id="app-container" class="max-w-7xl mx-auto p-4 md:p-8">
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-700">ระบบจัดการธุรกิจ</h1>
+            <p class="text-lg text-gray-500 mt-2">สร้างและจัดการเอกสารธุรกิจของคุณได้อย่างง่ายดาย</p>
+            <p class="text-sm text-gray-500 mt-2">User ID: <span id="userIdDisplay"></span></p>
+        </header>
+
+        <!-- Main Navigation -->
+        <nav id="main-nav" class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+            <button onclick="showPage('dashboard')" class="btn pastel-bg-blue"><i class="fas fa-home mr-2"></i>หน้าหลัก</button>
+            <button onclick="showPage('inventory')" class="btn pastel-bg-green"><i class="fas fa-warehouse mr-2"></i>คลังสินค้า</button>
+            <button onclick="showPage('customers')" class="btn pastel-bg-pink"><i class="fas fa-users mr-2"></i>ข้อมูลลูกค้า</button>
+            <button onclick="showPage('history')" class="btn pastel-bg-purple"><i class="fas fa-history mr-2"></i>ประวัติเอกสาร</button>
+            <button onclick="showPage('settings')" class="btn pastel-bg-yellow"><i class="fas fa-cog mr-2"></i>ตั้งค่า</button>
+        </nav>
+
+        <!-- App Pages -->
+        <main id="app-pages">
+            <!-- Dashboard Page -->
+            <div id="dashboard" class="page active-page text-center">
+                 <div class="bg-white p-8 rounded-xl shadow-md max-w-3xl mx-auto">
+                    <h2 class="text-3xl font-bold mb-2 text-gray-800">ยินดีต้อนรับ</h2>
+                    <p class="text-gray-500 mb-8">เลือกรายการที่ต้องการทำจากด้านล่างได้เลยครับ</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <button onclick="openDocumentModal('quotation')" class="p-8 bg-blue-100 hover:bg-blue-200 rounded-lg shadow-lg text-2xl font-bold text-blue-800 transition duration-300 ease-in-out transform hover:-translate-y-1">
+                            <i class="fas fa-file-invoice fa-2x mb-4"></i><br>สร้างใบเสนอราคา
+                        </button>
+                        <button onclick="openDocumentModal('receipt')" class="p-8 bg-green-100 hover:bg-green-200 rounded-lg shadow-lg text-2xl font-bold text-green-800 transition duration-300 ease-in-out transform hover:-translate-y-1">
+                            <i class="fas fa-receipt fa-2x mb-4"></i><br>สร้างใบเสร็จ
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Inventory Page -->
+            <div id="inventory" class="page">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-3xl font-bold">จัดการคลังสินค้า</h2>
+                    <button onclick="openInventoryModal()" class="bg-green-500 text-white px-5 py-2 rounded-lg shadow hover:bg-green-600"><i class="fas fa-plus mr-2"></i>เพิ่มสินค้าใหม่</button>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="border-b-2">
+                                <th class="p-3">รหัสสินค้า</th>
+                                <th class="p-3">ชื่อสินค้า</th>
+                                <th class="p-3">ราคา (บาท)</th>
+                                <th class="p-3">จำนวนคงคลัง</th>
+                                <th class="p-3">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventory-table-body">
+                            <!-- Product rows will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Customers Page -->
+            <div id="customers" class="page">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-3xl font-bold">จัดการข้อมูลลูกค้า</h2>
+                    <button onclick="openCustomerModal()" class="bg-pink-500 text-white px-5 py-2 rounded-lg shadow hover:bg-pink-600"><i class="fas fa-user-plus mr-2"></i>เพิ่มลูกค้าใหม่</button>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-md">
+                     <table class="w-full text-left">
+                        <thead>
+                            <tr class="border-b-2">
+                                <th class="p-3">ชื่อลูกค้า</th>
+                                <th class="p-3">ที่อยู่</th>
+                                <th class="p-3">เบอร์โทร</th>
+                                <th class="p-3">เลขผู้เสียภาษี</th>
+                                <th class="p-3">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customers-table-body">
+                            <!-- Customer rows will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- History Page -->
+            <div id="history" class="page">
+                <h2 class="text-3xl font-bold mb-4">ประวัติเอกสาร</h2>
+                 <div class="bg-white p-6 rounded-lg shadow-md">
+                    <table class="w-full text-left">
+                        <thead>
+                            <tr class="border-b-2">
+                                <th class="p-3">ประเภท</th>
+                                <th class="p-3">เลขที่เอกสาร</th>
+                                <th class="p-3">ชื่อลูกค้า</th>
+                                <th class="p-3">วันที่</th>
+                                <th class="p-3">ยอดรวม (บาท)</th>
+                                <th class="p-3">ดูเอกสาร</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body">
+                           <!-- History rows will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Settings Page -->
+            <div id="settings" class="page">
+                <h2 class="text-3xl font-bold mb-4">ตั้งค่าข้อมูลบริษัท</h2>
+                <div class="bg-white p-8 rounded-lg shadow-md">
+                    <form id="settings-form" class="space-y-4">
+                        <input type="text" id="company-name" placeholder="ชื่อบริษัท" class="w-full p-3 border rounded-lg" required>
+                        <textarea id="company-address" placeholder="ที่อยู่บริษัท" class="w-full p-3 border rounded-lg" rows="3" required></textarea>
+                        <input type="text" id="company-tax-id" placeholder="เลขประจำตัวผู้เสียภาษี" class="w-full p-3 border rounded-lg">
+                        <input type="text" id="company-phone" placeholder="เบอร์โทรศัพท์" class="w-full p-3 border rounded-lg">
+                        <input type="text" id="company-logo-url" placeholder="URL โลโก้บริษัท (ถ้ามี)" class="w-full p-3 border rounded-lg">
+                        <button type="submit" class="bg-yellow-500 text-white px-6 py-3 rounded-lg shadow hover:bg-yellow-600 text-lg font-bold">บันทึกข้อมูล</button>
+                    </form>
+                </div>
+            </div>
+        </main>
+
+    </div>
+
+    <!-- Modals -->
+    <div id="inventory-modal" class="modal hidden">
+        <div class="modal-content">
+            <h3 id="inventory-modal-title" class="text-2xl font-bold mb-6">เพิ่ม/แก้ไขสินค้า</h3>
+            <form id="inventory-form" class="space-y-4">
+                <input type="hidden" id="inventory-id">
+                <input type="text" id="product-code" placeholder="รหัสสินค้า (ถ้ามี)" class="w-full p-3 border rounded-lg">
+                <input type="text" id="product-name" placeholder="ชื่อสินค้า" class="w-full p-3 border rounded-lg" required>
+                <input type="number" id="product-price" placeholder="ราคาต่อหน่วย" class="w-full p-3 border rounded-lg" required min="0" step="0.01">
+                <input type="number" id="product-quantity" placeholder="จำนวนคงคลัง" class="w-full p-3 border rounded-lg" required min="0">
+                <div class="flex justify-end space-x-4 pt-4">
+                    <button type="button" onclick="closeInventoryModal()" class="bg-gray-300 px-6 py-2 rounded-lg">ยกเลิก</button>
+                    <button type="submit" class="bg-green-500 text-white px-6 py-2 rounded-lg">บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <div id="customer-modal" class="modal hidden">
+        <div class="modal-content">
+             <h3 id="customer-modal-title" class="text-2xl font-bold mb-6">เพิ่ม/แก้ไขข้อมูลลูกค้า</h3>
+            <form id="customer-form" class="space-y-4">
+                <input type="hidden" id="customer-id">
+                <input type="text" id="customer-name" placeholder="ชื่อลูกค้า" class="w-full p-3 border rounded-lg" required>
+                <textarea id="customer-address" placeholder="ที่อยู่" class="w-full p-3 border rounded-lg" rows="3" required></textarea>
+                <input type="text" id="customer-phone" placeholder="เบอร์โทร" class="w-full p-3 border rounded-lg">
+                <input type="text" id="customer-tax-id" placeholder="เลขประจำตัวผู้เสียภาษี" class="w-full p-3 border rounded-lg">
+                 <div class="flex justify-end space-x-4 pt-4">
+                    <button type="button" onclick="closeCustomerModal()" class="bg-gray-300 px-6 py-2 rounded-lg">ยกเลิก</button>
+                    <button type="submit" class="bg-pink-500 text-white px-6 py-2 rounded-lg">บันทึก</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="document-modal" class="modal hidden">
+        <div class="modal-content max-w-4xl">
+            <h3 id="document-modal-title" class="text-2xl font-bold mb-6">สร้างเอกสาร</h3>
+            <form id="document-form" class="space-y-4">
+                <input type="hidden" id="document-type">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="font-bold">ลูกค้า:</label>
+                        <select id="document-customer" class="w-full p-3 border rounded-lg" required></select>
+                    </div>
+                    <div>
+                        <label class="font-bold">วันที่:</label>
+                        <input type="date" id="document-date" class="w-full p-3 border rounded-lg" required>
+                    </div>
+                </div>
+                
+                <h4 class="text-xl font-bold mt-6 mb-2">รายการสินค้า</h4>
+                <div id="document-items" class="space-y-2">
+                    <!-- Item rows will be added here -->
+                </div>
+                <button type="button" onclick="addDocumentItem()" class="bg-blue-500 text-white px-4 py-2 rounded-lg mt-2"><i class="fas fa-plus mr-2"></i>เพิ่มรายการ</button>
+
+                <div class="text-right mt-6 space-y-2 text-xl">
+                    <div>ราคารวม: <span id="subtotal">0.00</span> บาท</div>
+                    <div>ภาษีมูลค่าเพิ่ม 7%: <span id="vat">0.00</span> บาท</div>
+                    <div class="font-bold">ยอดรวมสุทธิ: <span id="grandtotal">0.00</span> บาท</div>
+                </div>
+
+                <div class="flex justify-end space-x-4 pt-6">
+                    <button type="button" onclick="closeDocumentModal()" class="bg-gray-300 px-6 py-2 rounded-lg">ยกเลิก</button>
+                    <button type="submit" class="bg-green-500 text-white px-6 py-2 rounded-lg">สร้างเอกสาร</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Print Area -->
+    <div id="print-area" class="bg-white p-12"></div>
+
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, collection, query, writeBatch, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- FIREBASE CONFIGURATION ---
+        const firebaseConfig = {
+  apiKey: "AIzaSyAl-4g75Azf820VWoSnUC_fZjPmPSFY7Kk",
+  authDomain: "ptbiz-cf8f8.firebaseapp.com",
+  projectId: "ptbiz-cf8f8",
+  storageBucket: "ptbiz-cf8f8.firebasestorage.app",
+  messagingSenderId: "183705678378",
+  appId: "1:183705678378:web:7182914636995d952c0953"
+};
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let userId = null;
+        let companyInfo = {};
+        let inventoryCache = [];
+        let customersCache = [];
+
+        // --- AUTHENTICATION ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                document.getElementById('userIdDisplay').textContent = userId;
+                initializeAppLogic();
+            } else {
+                 try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                       await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                       await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Authentication Error:", error);
+                    document.body.innerHTML = 'เกิดข้อผิดพลาดในการยืนยันตัวตน ไม่สามารถใช้งานแอปได้';
+                }
+            }
+        });
+
+        // --- MAIN APP LOGIC ---
+        function initializeAppLogic() {
+            if (!userId) return;
+            setupListeners();
+            setupUI();
+            checkCompanySettings();
+        }
+
+        function getCollectionPath(collectionName) {
+            return `artifacts/${appId}/users/${userId}/${collectionName}`;
+        }
+        
+        function getDocPath(collectionName, docId) {
+             return `artifacts/${appId}/users/${userId}/${collectionName}/${docId}`;
+        }
+        
+        // --- LISTENERS ---
+        function setupListeners() {
+            onSnapshot(doc(db, getDocPath('app_settings', 'company_info')), (doc) => {
+                if (doc.exists()) {
+                    companyInfo = doc.data();
+                    populateSettingsForm();
+                }
+            });
+
+            onSnapshot(collection(db, getCollectionPath('inventory')), (snapshot) => {
+                const tableBody = document.getElementById('inventory-table-body');
+                tableBody.innerHTML = '';
+                inventoryCache = [];
+                snapshot.forEach(doc => {
+                    const product = { id: doc.id, ...doc.data() };
+                    inventoryCache.push(product);
+                    const row = `
+                        <tr id="inv-${doc.id}">
+                            <td class="p-3">${product.code || '-'}</td>
+                            <td class="p-3 font-bold">${product.name}</td>
+                            <td class="p-3">${parseFloat(product.price).toFixed(2)}</td>
+                            <td class="p-3">${product.quantity}</td>
+                            <td class="p-3 space-x-2">
+                                <button onclick="openInventoryModal('${doc.id}')" class="text-blue-500 hover:text-blue-700"><i class="fas fa-edit"></i></button>
+                                <button onclick="deleteInventoryItem('${doc.id}')" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                    tableBody.innerHTML += row;
+                });
+            });
+            
+            onSnapshot(collection(db, getCollectionPath('customers')), (snapshot) => {
+                const tableBody = document.getElementById('customers-table-body');
+                tableBody.innerHTML = '';
+                customersCache = [];
+                snapshot.forEach(doc => {
+                    const customer = { id: doc.id, ...doc.data() };
+                    customersCache.push(customer);
+                    const row = `
+                        <tr id="cust-${doc.id}">
+                            <td class="p-3 font-bold">${customer.name}</td>
+                            <td class="p-3">${customer.address}</td>
+                            <td class="p-3">${customer.phone || '-'}</td>
+                            <td class="p-3">${customer.taxId || '-'}</td>
+                            <td class="p-3 space-x-2">
+                                <button onclick="openCustomerModal('${doc.id}')" class="text-blue-500 hover:text-blue-700"><i class="fas fa-edit"></i></button>
+                                <button onclick="deleteCustomer('${doc.id}')" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
+                            </td>
+                        </tr>
+                    `;
+                    tableBody.innerHTML += row;
+                });
+            });
+
+            onSnapshot(collection(db, getCollectionPath('documents')), (snapshot) => {
+                const tableBody = document.getElementById('history-table-body');
+                tableBody.innerHTML = '';
+                snapshot.forEach(doc => {
+                    const docData = doc.data();
+                    const date = docData.date.toDate().toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: '2-digit' });
+                    const row = `
+                        <tr>
+                            <td class="p-3">${docData.type === 'quotation' ? 'ใบเสนอราคา' : 'ใบเสร็จ'}</td>
+                            <td class="p-3">${docData.number}</td>
+                            <td class="p-3">${docData.customer.name}</td>
+                            <td class="p-3">${date}</td>
+                            <td class="p-3">${parseFloat(docData.grandTotal).toFixed(2)}</td>
+                            <td class="p-3"><button onclick="viewDocument('${doc.id}')" class="text-blue-500 hover:underline">ดูรายละเอียด</button></td>
+                        </tr>
+                    `;
+                    tableBody.innerHTML += row;
+                });
+            });
+        }
+        
+        // --- UI CONTROL ---
+        window.showPage = (pageId) => {
+            document.querySelectorAll('.page').forEach(page => page.classList.remove('active-page'));
+            document.getElementById(pageId).classList.add('active-page');
+        }
+
+        function setupUI() {
+            document.getElementById('settings-form').addEventListener('submit', saveSettings);
+            document.getElementById('inventory-form').addEventListener('submit', saveInventoryItem);
+            document.getElementById('customer-form').addEventListener('submit', saveCustomer);
+            document.getElementById('document-form').addEventListener('submit', saveDocument);
+        }
+
+        async function checkCompanySettings() {
+            const docRef = doc(db, getDocPath('app_settings', 'company_info'));
+            const docSnap = await getDoc(docRef);
+            if (!docSnap.exists() || !docSnap.data().name) {
+                showPage('settings');
+                alert('กรุณากรอกข้อมูลบริษัทของคุณเพื่อเริ่มใช้งาน');
+            }
+        }
+        
+        // --- SETTINGS ---
+        function populateSettingsForm() {
+            if(companyInfo) {
+                document.getElementById('company-name').value = companyInfo.name || '';
+                document.getElementById('company-address').value = companyInfo.address || '';
+                document.getElementById('company-tax-id').value = companyInfo.taxId || '';
+                document.getElementById('company-phone').value = companyInfo.phone || '';
+                document.getElementById('company-logo-url').value = companyInfo.logoUrl || '';
+            }
+        }
+        
+        async function saveSettings(e) {
+            e.preventDefault();
+            const settingsData = {
+                name: document.getElementById('company-name').value,
+                address: document.getElementById('company-address').value,
+                taxId: document.getElementById('company-tax-id').value,
+                phone: document.getElementById('company-phone').value,
+                logoUrl: document.getElementById('company-logo-url').value,
+            };
+            await setDoc(doc(db, getDocPath('app_settings', 'company_info')), settingsData, { merge: true });
+            alert('บันทึกข้อมูลบริษัทสำเร็จแล้ว');
+            showPage('dashboard');
+        }
+
+        // --- INVENTORY ---
+        window.openInventoryModal = (id = null) => {
+            const form = document.getElementById('inventory-form');
+            form.reset();
+            document.getElementById('inventory-id').value = '';
+             if (id) {
+                const product = inventoryCache.find(p => p.id === id);
+                if (product) {
+                    document.getElementById('inventory-id').value = product.id;
+                    document.getElementById('product-code').value = product.code;
+                    document.getElementById('product-name').value = product.name;
+                    document.getElementById('product-price').value = product.price;
+                    document.getElementById('product-quantity').value = product.quantity;
+                }
+            }
+            document.getElementById('inventory-modal').classList.remove('hidden');
+        }
+
+        window.closeInventoryModal = () => {
+            document.getElementById('inventory-modal').classList.add('hidden');
+        }
+
+        async function saveInventoryItem(e) {
+            e.preventDefault();
+            const id = document.getElementById('inventory-id').value;
+            const data = {
+                code: document.getElementById('product-code').value,
+                name: document.getElementById('product-name').value,
+                price: parseFloat(document.getElementById('product-price').value),
+                quantity: parseInt(document.getElementById('product-quantity').value)
+            };
+
+            if (id) {
+                await updateDoc(doc(db, getCollectionPath('inventory'), id), data);
+            } else {
+                await addDoc(collection(db, getCollectionPath('inventory')), data);
+            }
+            closeInventoryModal();
+            alert('บันทึกข้อมูลสินค้าสำเร็จ');
+        }
+        
+        window.deleteInventoryItem = async (id) => {
+             if (confirm('คุณต้องการลบสินค้านี้ใช่หรือไม่?')) {
+                await deleteDoc(doc(db, getCollectionPath('inventory'), id));
+                alert('ลบสินค้าสำเร็จ');
+            }
+        }
+        
+        // --- CUSTOMERS ---
+        window.openCustomerModal = (id = null) => {
+            const form = document.getElementById('customer-form');
+            form.reset();
+            document.getElementById('customer-id').value = '';
+            if (id) {
+                const customer = customersCache.find(c => c.id === id);
+                if (customer) {
+                    document.getElementById('customer-id').value = customer.id;
+                    document.getElementById('customer-name').value = customer.name;
+                    document.getElementById('customer-address').value = customer.address;
+                    document.getElementById('customer-phone').value = customer.phone;
+                    document.getElementById('customer-tax-id').value = customer.taxId;
+                }
+            }
+            document.getElementById('customer-modal').classList.remove('hidden');
+        }
+
+        window.closeCustomerModal = () => {
+            document.getElementById('customer-modal').classList.add('hidden');
+        }
+
+        async function saveCustomer(e) {
+            e.preventDefault();
+            const id = document.getElementById('customer-id').value;
+            const data = {
+                name: document.getElementById('customer-name').value,
+                address: document.getElementById('customer-address').value,
+                phone: document.getElementById('customer-phone').value,
+                taxId: document.getElementById('customer-tax-id').value,
+            };
+
+            if (id) {
+                await updateDoc(doc(db, getCollectionPath('customers'), id), data);
+            } else {
+                await addDoc(collection(db, getCollectionPath('customers')), data);
+            }
+            closeCustomerModal();
+            alert('บันทึกข้อมูลลูกค้าสำเร็จ');
+        }
+
+        window.deleteCustomer = async (id) => {
+            if (confirm('คุณต้องการลบข้อมูลลูกค้านี้ใช่หรือไม่?')) {
+                await deleteDoc(doc(db, getCollectionPath('customers'), id));
+                alert('ลบข้อมูลลูกค้าสำเร็จ');
+            }
+        }
+
+        // --- DOCUMENT CREATION ---
+        window.openDocumentModal = (type) => {
+            const form = document.getElementById('document-form');
+            form.reset();
+            document.getElementById('document-type').value = type;
+            document.getElementById('document-modal-title').innerText = type === 'quotation' ? 'สร้างใบเสนอราคา' : 'สร้างใบเสร็จ';
+            document.getElementById('document-date').valueAsDate = new Date();
+
+            const customerSelect = document.getElementById('document-customer');
+            customerSelect.innerHTML = '<option value="">-- เลือกลูกค้า --</option>';
+            customersCache.forEach(c => {
+                customerSelect.innerHTML += `<option value="${c.id}">${c.name}</option>`;
+            });
+            
+            document.getElementById('document-items').innerHTML = '';
+            addDocumentItem();
+            updateTotals();
+
+            document.getElementById('document-modal').classList.remove('hidden');
+        }
+
+        window.closeDocumentModal = () => {
+            document.getElementById('document-modal').classList.add('hidden');
+        }
+
+        let itemCounter = 0;
+        window.addDocumentItem = () => {
+            itemCounter++;
+            const itemRow = document.createElement('div');
+            itemRow.className = 'grid grid-cols-12 gap-2 items-center';
+            itemRow.id = `item-row-${itemCounter}`;
+            
+            let productOptions = '<option value="">-- เลือกสินค้า --</option>';
+            inventoryCache.forEach(p => {
+                productOptions += `<option value="${p.id}" data-price="${p.price}">${p.name} (คงเหลือ: ${p.quantity})</option>`;
+            });
+
+            itemRow.innerHTML = `
+                <div class="col-span-6">
+                    <select class="item-product w-full p-2 border rounded" onchange="updateItemPrice(this)">${productOptions}</select>
+                </div>
+                <div class="col-span-2">
+                    <input type="number" class="item-quantity w-full p-2 border rounded" placeholder="จำนวน" min="1" value="1" onchange="updateTotals()">
+                </div>
+                <div class="col-span-3 text-right">
+                    <span class="item-total p-2">0.00</span>
+                </div>
+                <div class="col-span-1 text-right">
+                    <button type="button" onclick="removeDocumentItem('item-row-${itemCounter}')" class="text-red-500 hover:text-red-700"><i class="fas fa-times-circle"></i></button>
+                </div>
+            `;
+            document.getElementById('document-items').appendChild(itemRow);
+        }
+
+        window.removeDocumentItem = (rowId) => {
+            document.getElementById(rowId).remove();
+            updateTotals();
+        }
+
+        window.updateItemPrice = (selectElement) => {
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
+            const price = selectedOption.dataset.price || 0;
+            const row = selectElement.closest('.grid');
+            row.querySelector('.item-quantity').value = 1;
+            updateTotals();
+        }
+
+        window.updateTotals = () => {
+            let subtotal = 0;
+            document.querySelectorAll('#document-items .grid').forEach(row => {
+                const productSelect = row.querySelector('.item-product');
+                const selectedOption = productSelect.options[productSelect.selectedIndex];
+                const price = parseFloat(selectedOption.dataset.price) || 0;
+                const quantity = parseInt(row.querySelector('.item-quantity').value) || 0;
+                const itemTotal = price * quantity;
+                row.querySelector('.item-total').innerText = itemTotal.toFixed(2);
+                subtotal += itemTotal;
+            });
+
+            const vat = subtotal * 0.07;
+            const grandTotal = subtotal + vat;
+
+            document.getElementById('subtotal').innerText = subtotal.toFixed(2);
+            document.getElementById('vat').innerText = vat.toFixed(2);
+            document.getElementById('grandtotal').innerText = grandTotal.toFixed(2);
+        }
+
+        async function saveDocument(e) {
+            e.preventDefault();
+
+            const docType = document.getElementById('document-type').value;
+            const customerId = document.getElementById('document-customer').value;
+            if (!customerId) {
+                alert('กรุณาเลือกลูกค้า');
+                return;
+            }
+            const customer = customersCache.find(c => c.id === customerId);
+
+            const items = [];
+            let valid = true;
+            document.querySelectorAll('#document-items .grid').forEach(row => {
+                const productId = row.querySelector('.item-product').value;
+                const quantity = parseInt(row.querySelector('.item-quantity').value);
+                if (!productId || !quantity) {
+                    valid = false;
+                    return;
+                }
+                const product = inventoryCache.find(p => p.id === productId);
+
+                // For receipts, check stock
+                if (docType === 'receipt' && quantity > product.quantity) {
+                    alert(`สินค้า '${product.name}' มีไม่พอ (คงเหลือ ${product.quantity})`);
+                    valid = false;
+                    return;
+                }
+
+                items.push({
+                    productId: productId,
+                    name: product.name,
+                    code: product.code,
+                    quantity: quantity,
+                    price: product.price,
+                    total: product.price * quantity,
+                });
+            });
+
+            if (!valid || items.length === 0) {
+                 alert('กรุณากรอกข้อมูลรายการสินค้าให้ครบถ้วน');
+                 return;
+            }
+
+            const settingsRef = doc(db, getDocPath('app_settings', 'company_info'));
+            let newDocNumber;
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const settingsDoc = await transaction.get(settingsRef);
+                    if (!settingsDoc.exists()) {
+                        throw "Company settings not found!";
+                    }
+                    const settingsData = settingsDoc.data();
+                    if (docType === 'quotation') {
+                        const lastNumber = settingsData.lastQuoteNumber || 0;
+                        newDocNumber = `QT-${(lastNumber + 1).toString().padStart(6, '0')}`;
+                        transaction.update(settingsRef, { lastQuoteNumber: lastNumber + 1 });
+                    } else {
+                        const lastNumber = settingsData.lastReceiptNumber || 0;
+                        newDocNumber = `INV-${(lastNumber + 1).toString().padStart(6, '0')}`;
+                        transaction.update(settingsRef, { lastReceiptNumber: lastNumber + 1 });
+                    }
+
+                    // For receipts, update inventory stock
+                    if (docType === 'receipt') {
+                        for (const item of items) {
+                            const productRef = doc(db, getCollectionPath('inventory'), item.productId);
+                            const productDoc = await transaction.get(productRef);
+                            if (!productDoc.exists()) throw `Product ${item.name} not found!`;
+                            const newQuantity = productDoc.data().quantity - item.quantity;
+                            transaction.update(productRef, { quantity: newQuantity });
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error("Transaction failed: ", error);
+                alert("เกิดข้อผิดพลาดในการสร้างเอกสาร: " + error);
+                return;
+            }
+
+            const docData = {
+                number: newDocNumber,
+                type: docType,
+                date: new Date(document.getElementById('document-date').value),
+                customer: {
+                    id: customer.id,
+                    name: customer.name,
+                    address: customer.address,
+                    taxId: customer.taxId
+                },
+                items: items,
+                subtotal: parseFloat(document.getElementById('subtotal').innerText),
+                vat: parseFloat(document.getElementById('vat').innerText),
+                grandTotal: parseFloat(document.getElementById('grandtotal').innerText),
+                companyInfo: companyInfo // Snapshot of company info at time of creation
+            };
+
+            const newDocRef = await addDoc(collection(db, getCollectionPath('documents')), docData);
+            
+            if (docType === 'receipt') {
+                 await addDoc(collection(db, getCollectionPath('revenue')), {
+                    date: docData.date,
+                    amount: docData.grandTotal,
+                    documentId: newDocRef.id,
+                    documentNumber: docData.number
+                });
+            }
+
+            alert(`สร้าง ${docType === 'quotation' ? 'ใบเสนอราคา' : 'ใบเสร็จ'} เลขที่ ${newDocNumber} สำเร็จ`);
+            closeDocumentModal();
+            viewDocument(newDocRef.id);
+        }
+        
+        // --- DOCUMENT VIEW & PRINT ---
+        window.viewDocument = async (docId) => {
+            const docRef = doc(db, getCollectionPath('documents'), docId);
+            const docSnap = await getDoc(docRef);
+            if (!docSnap.exists()) {
+                alert('ไม่พบเอกสาร');
+                return;
+            }
+            const data = docSnap.data();
+            const printArea = document.getElementById('print-area');
+
+            let itemsHtml = '';
+            data.items.forEach(item => {
+                itemsHtml += `
+                    <tr class="border-b">
+                        <td class="p-2">${item.name}</td>
+                        <td class="p-2 text-center">${item.quantity}</td>
+                        <td class="p-2 text-right">${parseFloat(item.price).toFixed(2)}</td>
+                        <td class="p-2 text-right">${parseFloat(item.total).toFixed(2)}</td>
+                    </tr>
+                `;
+            });
+            
+            const thaiBathText = (number) => { /* Placeholder for number to Thai text function */ return `(${number.toFixed(2)} บาทถ้วน)`; };
+
+            printArea.innerHTML = `
+                <div class="p-4" style="border: 1px solid #ccc; width: 210mm; min-height: 297mm; margin: auto;">
+                    <div class="no-print mb-4 flex justify-end space-x-2">
+                        <button onclick="window.print()" class="bg-blue-500 text-white px-4 py-2 rounded">พิมพ์</button>
+                        <button onclick="closePrintView()" class="bg-gray-500 text-white px-4 py-2 rounded">ปิด</button>
+                    </div>
+                    <header class="flex justify-between items-start mb-8">
+                         <div>
+                            ${data.companyInfo.logoUrl ? `<img src="${data.companyInfo.logoUrl}" alt="logo" class="h-20 mb-4">` : ''}
+                            <h2 class="text-xl font-bold">${data.companyInfo.name}</h2>
+                            <p class="text-sm" style="white-space: pre-wrap;">${data.companyInfo.address}</p>
+                            <p class="text-sm">โทร: ${data.companyInfo.phone}</p>
+                            <p class="text-sm">เลขประจำตัวผู้เสียภาษี: ${data.companyInfo.taxId}</p>
+                        </div>
+                        <div class="text-right">
+                             <h1 class="text-2xl font-bold mb-2">${data.type === 'quotation' ? 'ใบเสนอราคา / Quotation' : 'ใบเสร็จรับเงิน / Receipt'}</h1>
+                             <p>เลขที่: ${data.number}</p>
+                             <p>วันที่: ${data.date.toDate().toLocaleDateString('th-TH')}</p>
+                        </div>
+                    </header>
+                    <section class="border-t border-b py-4 mb-8">
+                        <h3 class="font-bold">ลูกค้า:</h3>
+                        <p>${data.customer.name}</p>
+                        <p style="white-space: pre-wrap;">ที่อยู่: ${data.customer.address}</p>
+                        <p>เลขประจำตัวผู้เสียภาษี: ${data.customer.taxId || '-'}</p>
+                    </section>
+                    <table class="w-full mb-8">
+                        <thead>
+                            <tr class="border-b-2 border-black">
+                                <th class="p-2 text-left">รายการ</th>
+                                <th class="p-2 text-center" style="width:15%">จำนวน</th>
+                                <th class="p-2 text-right" style="width:20%">ราคา/หน่วย</th>
+                                <th class="p-2 text-right" style="width:20%">รวมเงิน</th>
+                            </tr>
+                        </thead>
+                        <tbody>${itemsHtml}</tbody>
+                    </table>
+                    <footer class="flex justify-end">
+                        <div class="w-1/2">
+                            <table class="w-full">
+                                <tbody>
+                                    <tr><td class="p-2">ราคารวม</td><td class="p-2 text-right">${data.subtotal.toFixed(2)}</td></tr>
+                                    <tr><td class="p-2">ภาษีมูลค่าเพิ่ม 7%</td><td class="p-2 text-right">${data.vat.toFixed(2)}</td></tr>
+                                    <tr class="font-bold border-t-2 border-b-2 border-black"><td class="p-2">ยอดรวมสุทธิ</td><td class="p-2 text-right">${data.grandTotal.toFixed(2)}</td></tr>
+                                </tbody>
+                            </table>
+                             <div class="font-bold mt-2 text-center bg-gray-100 p-2">${thaiBathText(data.grandTotal)}</div>
+                        </div>
+                    </footer>
+                </div>
+            `;
+            showPage('dashboard'); // Go back to dashboard conceptually
+            document.getElementById('app-container').classList.add('hidden');
+            printArea.classList.add('block');
+            printArea.classList.remove('hidden');
+        }
+        
+        window.closePrintView = () => {
+            const printArea = document.getElementById('print-area');
+            printArea.innerHTML = '';
+            printArea.classList.add('hidden');
+            printArea.classList.remove('block');
+            document.getElementById('app-container').classList.remove('hidden');
+        }
+        
+    </script>
+</body>
+</html>
