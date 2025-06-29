@@ -465,9 +465,7 @@
                 const file = e.target.files[0];
                 if (file) {
                     const reader = new FileReader();
-                    reader.onload = (event) => {
-                        document.getElementById('logo-preview').src = event.target.result;
-                    }
+                    reader.onload = (event) => document.getElementById('logo-preview').src = event.target.result;
                     reader.readAsDataURL(file);
                 }
             });
@@ -475,9 +473,7 @@
                 const file = e.target.files[0];
                 if (file) {
                     const reader = new FileReader();
-                    reader.onload = (event) => {
-                        document.getElementById('letterhead-preview').src = event.target.result;
-                    }
+                    reader.onload = (event) => document.getElementById('letterhead-preview').src = event.target.result;
                     reader.readAsDataURL(file);
                 }
             });
@@ -533,17 +529,8 @@
                     letterheadUrl = await getDownloadURL(letterheadStorageRef);
                 }
                 
-                const settingsData = {
-                    name: document.getElementById('company-name').value.trim(),
-                    address: document.getElementById('company-address').value.trim(),
-                    taxId: document.getElementById('company-tax-id').value.trim(),
-                    phone: document.getElementById('company-phone').value.trim(),
-                    logoUrl: logoUrl,
-                    letterheadUrl: letterheadUrl
-                };
-                if (!settingsData.name || !settingsData.address) {
-                    throw new Error('กรุณากรอกชื่อและที่อยู่บริษัท');
-                }
+                const settingsData = { name: document.getElementById('company-name').value.trim(), address: document.getElementById('company-address').value.trim(), taxId: document.getElementById('company-tax-id').value.trim(), phone: document.getElementById('company-phone').value.trim(), logoUrl: logoUrl, letterheadUrl: letterheadUrl };
+                if (!settingsData.name || !settingsData.address) throw new Error('กรุณากรอกชื่อและที่อยู่บริษัท');
                 
                 await setDoc(doc(db, getCollectionPath('app_settings'), 'company_info'), settingsData, { merge: true });
                 alert('บันทึกข้อมูลบริษัทสำเร็จแล้ว');
@@ -752,6 +739,9 @@
 
         async function saveDocument(e) {
             e.preventDefault();
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'กำลังสร้าง...';
             try {
                 const docType = document.getElementById('document-type').value;
                 const customerId = document.getElementById('document-customer').value;
@@ -767,40 +757,57 @@
                     if (!productId || !quantity || quantity <= 0) {
                         hasInvalidItem = true; return;
                     }
-                    const product = inventoryCache.find(p => p.id === productId);
-                    if (docType === 'receipt' && quantity > product.quantity) {
-                        throw new Error(`สินค้า '${product.name}' มีไม่พอ (คงเหลือ ${product.quantity})`);
-                    }
-                    items.push({ productId, name: product.name, code: product.code, quantity, price: product.price, total: product.price * quantity });
+                    items.push({ productId, quantity });
                 });
                 if (hasInvalidItem || items.length === 0) throw new Error('กรุณาตรวจสอบรายการสินค้าให้ถูกต้อง');
                 
                 let newDocNumber = '';
                 const settingsRef = doc(db, getCollectionPath('app_settings'), 'company_info');
+                
                 await runTransaction(db, async (transaction) => {
+                    // 1. ALL READS FIRST
                     const settingsDoc = await transaction.get(settingsRef);
                     if (!settingsDoc.exists()) throw new Error("ไม่พบข้อมูลการตั้งค่าบริษัท");
+
+                    const productRefs = items.map(item => doc(db, getCollectionPath('inventory'), item.productId));
+                    const productDocs = await Promise.all(productRefs.map(ref => transaction.get(ref)));
+                    
+                    // 2. ALL VALIDATIONS AND CALCULATIONS
                     const settingsData = settingsDoc.data();
                     if (docType === 'quotation') {
-                        const lastNumber = settingsData.lastQuoteNumber || 0;
-                        newDocNumber = `QT-${String(lastNumber + 1).padStart(6, '0')}`;
-                        transaction.update(settingsRef, { lastQuoteNumber: lastNumber + 1 });
-                    } else {
-                        const lastNumber = settingsData.lastReceiptNumber || 0;
-                        newDocNumber = `INV-${String(lastNumber + 1).padStart(6, '0')}`;
-                        transaction.update(settingsRef, { lastReceiptNumber: lastNumber + 1 });
+                        newDocNumber = `QT-${String((settingsData.lastQuoteNumber || 0) + 1).padStart(6, '0')}`;
+                    } else { // 'receipt'
+                        newDocNumber = `INV-${String((settingsData.lastReceiptNumber || 0) + 1).padStart(6, '0')}`;
+                        productDocs.forEach((productDoc, index) => {
+                            const item = items[index];
+                            const productData = inventoryCache.find(p => p.id === item.productId);
+                            if (!productDoc.exists()) throw new Error(`ไม่พบสินค้า ${productData.name} ในคลัง`);
+                            if (productDoc.data().quantity < item.quantity) {
+                                throw new Error(`สินค้า '${productData.name}' มีไม่พอ (คงเหลือ ${productDoc.data().quantity})`);
+                            }
+                        });
                     }
-                    if (docType === 'receipt') {
-                        for (const item of items) {
+                    
+                    // 3. ALL WRITES LAST
+                    if (docType === 'quotation') {
+                        transaction.update(settingsRef, { lastQuoteNumber: (settingsData.lastQuoteNumber || 0) + 1 });
+                    } else { // 'receipt'
+                        transaction.update(settingsRef, { lastReceiptNumber: (settingsData.lastReceiptNumber || 0) + 1 });
+                        productDocs.forEach((productDoc, index) => {
+                            const item = items[index];
                             const productRef = doc(db, getCollectionPath('inventory'), item.productId);
-                            const productDoc = await transaction.get(productRef);
-                            if (!productDoc.exists()) throw new Error(`ไม่พบสินค้า ${item.name} ในคลัง`);
                             const newQuantity = productDoc.data().quantity - item.quantity;
                             transaction.update(productRef, { quantity: newQuantity });
-                        }
+                        });
                     }
                 });
-                const docData = { number: newDocNumber, type: docType, date: new Date(document.getElementById('document-date').value), customer: { id: customer.id, name: customer.name, address: customer.address, taxId: customer.taxId }, items, subtotal: parseFloat(document.getElementById('subtotal').innerText), vat: parseFloat(document.getElementById('vat').innerText), grandTotal: parseFloat(document.getElementById('grandtotal').innerText), companyInfo };
+
+                const itemsWithDetails = items.map(item => {
+                    const product = inventoryCache.find(p => p.id === item.productId);
+                    return { ...item, name: product.name, code: product.code, price: product.price, total: product.price * item.quantity };
+                });
+
+                const docData = { number: newDocNumber, type: docType, date: new Date(document.getElementById('document-date').value), customer: { id: customer.id, name: customer.name, address: customer.address, taxId: customer.taxId }, items: itemsWithDetails, subtotal: parseFloat(document.getElementById('subtotal').innerText), vat: parseFloat(document.getElementById('vat').innerText), grandTotal: parseFloat(document.getElementById('grandtotal').innerText), companyInfo };
                 const newDocRef = await addDoc(collection(db, getCollectionPath('documents')), docData);
                 if (docType === 'receipt') await addDoc(collection(db, getCollectionPath('revenue')), { date: docData.date, amount: docData.grandTotal, documentId: newDocRef.id, documentNumber: docData.number });
                 alert(`สร้าง ${docType === 'quotation' ? 'ใบเสนอราคา' : 'ใบเสร็จ'} เลขที่ ${newDocNumber} สำเร็จ`);
@@ -809,6 +816,9 @@
             } catch (error) {
                 console.error("Failed to save document: ", error);
                 alert("เกิดข้อผิดพลาดในการสร้างเอกสาร: " + error.message);
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'สร้างเอกสาร';
             }
         }
         
