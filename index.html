@@ -879,24 +879,55 @@
                 const bahttext = (num) => { num = Number(num.toFixed(2)); let baht = Math.floor(num); let satang = Math.round((num - baht) * 100); if (satang === 0) return `(${read(baht)}บาทถ้วน)`; return `(${read(baht)}บาท${read(satang)}สตางค์)`; };
                 const read = (num) => { const pos = ["", "สิบ", "ร้อย", "พัน", "หมื่น", "แสน", "ล้าน"], digit = ["", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า"]; let out = "", n = String(num).split("").reverse().join(""); for (let i = 0; i < n.length; i++) { let str = "", d = Number(n[i]); if (d !== 0) { if (i === 0 && d === 1 && n.length > 1) str = "เอ็ด"; else if (i === 1 && d === 1) str = ""; else if (i === 1 && d === 2) str = "ยี่"; else str = digit[d]; str += pos[i]; } out = str + out; } return out; };
                 
+                let headerContent = `<header class="flex justify-between items-start my-8">
+                    <div>
+                        ${data.companyInfo.logoUrl ? `<img src="${data.companyInfo.logoUrl}" alt="logo" class="h-20 mb-4" onerror="this.style.display='none'">` : ''}
+                        <h2 class="text-xl font-bold">${data.companyInfo.name}</h2>
+                        <p class="text-sm" style="white-space: pre-wrap;">${data.companyInfo.address}</p>
+                        <p class="text-sm">โทร: ${data.companyInfo.phone}</p>
+                        <p class="text-sm">เลขประจำตัวผู้เสียภาษี: ${data.companyInfo.taxId}</p>
+                    </div>
+                    <div class="text-right flex-shrink-0">
+                         <h1 class="text-2xl font-bold mb-2">${data.type === 'quotation' ? 'ใบเสนอราคา / QUOTATION' : 'ใบกำกับภาษี / ใบเสร็จรับเงิน'}</h1>
+                         <p>เลขที่/No.: ${data.number}</p>
+                         <p>วันที่/Date: ${data.date.toDate().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric'})}</p>
+                    </div>
+                </header>`;
+
                 let quoteDetailsHtml = '';
                 if(data.type === 'quotation' && data.quoteDetails) {
+                    headerContent = `
+                        <div class="text-right text-sm">
+                            <p>ใบเสนอราคาเลขที่ ${data.number}</p>
+                            <p>วันที่ ${data.date.toDate().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric'})}</p>
+                        </div>
+                    `;
                     quoteDetailsHtml = `
                         <div class="mt-4 text-sm">
-                            <p><strong>เรื่อง</strong> ${data.quoteDetails.subject}</p>
-                            <p><strong>เรียน</strong> ${data.quoteDetails.attention}</p>
+                            <p><strong>เรื่อง</strong>&emsp;${data.quoteDetails.subject}</p>
+                            <p><strong>เรียน</strong>&emsp;${data.quoteDetails.attention}</p>
+                            <p class="mt-2 ml-8">${data.customer.name}</p>
                         </div>
                         <p class="my-4 text-sm">ห้างฯ ยินดีเสนอราคาผลิตภัณฑ์การแพทย์ ซึ่งห้างฯ เป็นผู้แทนจำหน่ายแต่ผู้เดียวในประเทศไทย ดังนี้ -</p>
                     `;
                 }
 
+                let customerSectionHtml = data.type === 'receipt' ? `
+                    <section class="border rounded-lg p-4 mb-8">
+                        <h3 class="font-bold">ข้อมูลลูกค้า</h3>
+                        <p>${data.customer.name}</p>
+                        <p style="white-space: pre-wrap;">ที่อยู่: ${data.customer.address}</p>
+                        <p>เลขประจำตัวผู้เสียภาษี: ${data.customer.taxId || '-'}</p>
+                    </section>
+                ` : '';
+
                 let quoteTermsHtml = '';
                 if(data.type === 'quotation' && data.quoteDetails) {
                     quoteTermsHtml = `
-                    <div class="w-1/2 text-sm mt-8">
+                    <div class="w-2/3 text-sm mt-8">
                          <table class="w-full">
                              <tbody>
-                                 <tr><td class="p-1 font-bold">ผลิตภัณฑ์</td><td class="p-1">${data.quoteDetails.productOrigin || '-'}</td></tr>
+                                 <tr><td class="p-1 font-bold w-1/3">ผลิตภัณฑ์</td><td class="p-1">${data.quoteDetails.productOrigin || '-'}</td></tr>
                                  <tr><td class="p-1 font-bold">กำหนดยืนราคา</td><td class="p-1">${data.quoteDetails.validity || '-'} วัน นับแต่วันที่ได้เสนอราคา</td></tr>
                                  <tr><td class="p-1 font-bold">กำหนดส่งของ</td><td class="p-1">${data.quoteDetails.delivery || '-'} วัน นับแต่วันที่ได้รับใบสั่งซื้อ</td></tr>
                                  <tr><td class="p-1 font-bold">รับประกันคุณภาพ</td><td class="p-1">${data.quoteDetails.warranty || '-'}</td></tr>
@@ -907,7 +938,41 @@
                 }
 
 
-                printArea.innerHTML = `<div class="bg-white p-8" style="width: 210mm; min-height: 297mm; margin: auto;"> ${data.companyInfo.letterheadUrl ? `<img src="${data.companyInfo.letterheadUrl}" alt="Letterhead" class="w-full absolute top-0 left-0" onerror="this.style.display='none'">` : ''}<div class="no-print mb-4 flex justify-end space-x-2"><button onclick="window.print()" class="bg-blue-500 text-white px-4 py-2 rounded">พิมพ์</button><button onclick="closePrintView()" class="bg-gray-500 text-white px-4 py-2 rounded">ปิด</button></div><header class="flex justify-between items-start my-8"><div>${data.companyInfo.logoUrl ? `<img src="${data.companyInfo.logoUrl}" alt="logo" class="h-20 mb-4" onerror="this.style.display='none'">` : ''}<h2 class="text-xl font-bold">${data.companyInfo.name}</h2><p class="text-sm" style="white-space: pre-wrap;">${data.companyInfo.address}</p><p class="text-sm">โทร: ${data.companyInfo.phone}</p><p class="text-sm">เลขประจำตัวผู้เสียภาษี: ${data.companyInfo.taxId}</p></div><div class="text-right flex-shrink-0"><h1 class="text-2xl font-bold mb-2">${data.type === 'quotation' ? 'ใบเสนอราคา / QUOTATION' : 'ใบกำกับภาษี / ใบเสร็จรับเงิน'}</h1><p>เลขที่/No.: ${data.number}</p><p>วันที่/Date: ${data.date.toDate().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric'})}</p></div></header><section class="mb-8">${quoteDetailsHtml}<div class="border rounded-lg p-4 mt-4"><h3 class="font-bold">ข้อมูลลูกค้า</h3><p>${data.customer.name}</p><p style="white-space: pre-wrap;">ที่อยู่: ${data.customer.address}</p><p>เลขประจำตัวผู้เสียภาษี: ${data.customer.taxId || '-'}</p></div></section><table class="w-full mb-8 text-sm"><thead><tr class="border-b-2 border-black bg-gray-100"><th class="p-2 text-left">รายการ (Description)</th><th class="p-2 text-center" style="width:15%">จำนวน (Quantity)</th><th class="p-2 text-right" style="width:20%">ราคา/หน่วย (Unit Price)</th><th class="p-2 text-right" style="width:20%">รวมเงิน (Amount)</th></tr></thead><tbody>${itemsHtml}</tbody></table><footer class="flex justify-between items-start pt-4">${quoteTermsHtml}<div class="w-1/2"><table class="w-full text-sm"><tbody><tr><td class="p-2">รวมเป็นเงิน (Subtotal)</td><td class="p-2 text-right">${data.subtotal.toFixed(2)}</td></tr><tr><td class="p-2">ภาษีมูลค่าเพิ่ม 7% (VAT 7%)</td><td class="p-2 text-right">${data.vat.toFixed(2)}</td></tr><tr class="font-bold border-t-2 border-b-2 border-black text-lg"><td class="p-2">ยอดรวมสุทธิ (Grand Total)</td><td class="p-2 text-right">${data.grandTotal.toFixed(2)}</td></tr></tbody></table><div class="font-bold mt-2 text-center bg-gray-100 p-2 rounded-lg">${bahttext(data.grandTotal)}</div></div></footer></div>`;
+                printArea.innerHTML = `
+                    <div class="bg-white p-8 relative" style="width: 210mm; min-height: 297mm; margin: auto;">
+                        ${data.companyInfo.letterheadUrl ? `<img src="${data.companyInfo.letterheadUrl}" alt="Letterhead" class="w-full absolute top-0 left-0 -z-10" onerror="this.style.display='none'">` : ''}
+                        <div class="no-print mb-4 flex justify-end space-x-2">
+                            <button onclick="window.print()" class="bg-blue-500 text-white px-4 py-2 rounded">พิมพ์</button>
+                            <button onclick="closePrintView()" class="bg-gray-500 text-white px-4 py-2 rounded">ปิด</button>
+                        </div>
+                        ${headerContent}
+                        ${customerSectionHtml}
+                        ${quoteDetailsHtml}
+                        <table class="w-full my-8 text-sm">
+                            <thead>
+                                <tr class="border-y-2 border-black">
+                                    <th class="p-2 text-left" style="width:15%">จำนวน</th>
+                                    <th class="p-2 text-left" style="width:45%">รายการ</th>
+                                    <th class="p-2 text-right" style="width:20%">ราคา/หน่วย</th>
+                                    <th class="p-2 text-right" style="width:20%">รวมเงิน</th>
+                                </tr>
+                            </thead>
+                            <tbody>${itemsHtml.replaceAll('<td class="p-2">', '<td class="p-2 border-b">').replaceAll('<td class="p-2 text-center">', '<td class="p-2 border-b text-center">').replaceAll('<td class="p-2 text-right">', '<td class="p-2 border-b text-right">')}</tbody>
+                        </table>
+                        <footer class="flex justify-between items-start pt-4">
+                            ${quoteTermsHtml}
+                            <div class="w-1/2 ml-auto">
+                                <table class="w-full text-sm">
+                                    <tbody>
+                                        <tr><td class="p-2">มูลค่าสินค้า</td><td class="p-2 text-right">${data.subtotal.toFixed(2)} บาท</td></tr>
+                                        <tr><td class="p-2">ภาษีมูลค่าเพิ่ม 7%</td><td class="p-2 text-right">${data.vat.toFixed(2)} บาท</td></tr>
+                                        <tr class="font-bold border-y-2 border-black text-lg"><td class="p-2">รวมยอดสุทธิ</td><td class="p-2 text-right">${data.grandTotal.toFixed(2)} บาท</td></tr>
+                                    </tbody>
+                                </table>
+                                 <div class="font-bold mt-2 text-center bg-gray-100 p-2 rounded-lg">${bahttext(data.grandTotal)}</div>
+                            </div>
+                        </footer>
+                    </div>`;
                 document.getElementById('app-container').classList.add('hidden');
                 document.getElementById('print-area').classList.remove('hidden');
             } catch(error) {
