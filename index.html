@@ -51,14 +51,15 @@
             #print-area, #print-area * {
                 visibility: visible;
             }
+            #print-area .no-print {
+                visibility: hidden;
+                display: none;
+            }
             #print-area {
                 position: absolute;
                 left: 0;
                 top: 0;
                 width: 100%;
-            }
-            .no-print {
-                display: none;
             }
         }
     </style>
@@ -165,7 +166,7 @@
                                 <th class="p-3">ชื่อลูกค้า</th>
                                 <th class="p-3">วันที่</th>
                                 <th class="p-3">ยอดรวม (บาท)</th>
-                                <th class="p-3">ดูเอกสาร</th>
+                                <th class="p-3">จัดการ</th>
                             </tr>
                         </thead>
                         <tbody id="history-table-body">
@@ -179,13 +180,33 @@
             <div id="settings" class="page">
                 <h2 class="text-3xl font-bold mb-4">ตั้งค่าข้อมูลบริษัท</h2>
                 <div class="bg-white p-8 rounded-lg shadow-md">
-                    <form id="settings-form" class="space-y-4">
+                    <form id="settings-form" class="space-y-6">
                         <input type="text" id="company-name" placeholder="ชื่อบริษัท" class="w-full p-3 border rounded-lg" required>
                         <textarea id="company-address" placeholder="ที่อยู่บริษัท" class="w-full p-3 border rounded-lg" rows="3" required></textarea>
                         <input type="text" id="company-tax-id" placeholder="เลขประจำตัวผู้เสียภาษี" class="w-full p-3 border rounded-lg">
                         <input type="text" id="company-phone" placeholder="เบอร์โทรศัพท์" class="w-full p-3 border rounded-lg">
-                        <input type="text" id="company-logo-url" placeholder="URL โลโก้บริษัท (ถ้ามี)" class="w-full p-3 border rounded-lg">
-                        <button type="submit" class="bg-yellow-500 text-white px-6 py-3 rounded-lg shadow hover:bg-yellow-600 text-lg font-bold">บันทึกข้อมูล</button>
+                        
+                        <div>
+                            <label class="font-bold block mb-2">โลโก้บริษัท (แนะนำขนาด กว้าง 200px):</label>
+                            <input type="file" id="logo-upload" accept="image/png, image/jpeg" class="w-full p-2 border rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-violet-50 file:text-violet-700 hover:file:bg-violet-100">
+                            <div class="mt-4">
+                                <p>ภาพตัวอย่าง:</p>
+                                <img id="logo-preview" src="https://placehold.co/200x80/e2e8f0/e2e8f0?text=+" alt="Logo Preview" class="mt-2 h-20 border p-1 bg-gray-100">
+                            </div>
+                            <input type="hidden" id="company-logo-url">
+                        </div>
+
+                        <div class="border-t pt-6">
+                            <label class="font-bold block mb-2">หัวกระดาษ (Letterhead) (ขนาดที่แนะนำ: กว้าง 2480px สำหรับ A4):</label>
+                            <input type="file" id="letterhead-upload" accept="image/png, image/jpeg" class="w-full p-2 border rounded-lg file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                            <div class="mt-4">
+                                <p>ภาพตัวอย่าง:</p>
+                                <img id="letterhead-preview" src="https://placehold.co/800x200/e2e8f0/e2e8f0?text=+" alt="Letterhead Preview" class="mt-2 w-full border p-1 bg-gray-100">
+                            </div>
+                            <input type="hidden" id="company-letterhead-url">
+                        </div>
+                        
+                        <button type="submit" class="bg-yellow-500 text-white px-6 py-3 rounded-lg shadow hover:bg-yellow-600 text-lg font-bold w-full md:w-auto">บันทึกข้อมูล</button>
                     </form>
                 </div>
             </div>
@@ -264,7 +285,6 @@
         </div>
     </div>
     
-    <!-- Print Area -->
     <div id="print-area" class="hidden"></div>
 
 
@@ -272,6 +292,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, collection, query, writeBatch, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
         // --- FIREBASE CONFIGURATION ---
         const firebaseConfig = {
@@ -284,31 +305,20 @@
         };
         
         // --- PRE-FLIGHT CHECK ---
-        if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes("AIzaSy...")) {
-            document.body.innerHTML = `
-                <div class="h-screen w-screen flex flex-col justify-center items-center text-center p-4 bg-red-100 text-red-800">
-                    <h1 class="text-3xl font-bold mb-4">ข้อผิดพลาดในการตั้งค่า</h1>
-                    <p class="text-lg">ไม่พบข้อมูลการตั้งค่า Firebase (Firebase Config)</p>
-                    <p class="mt-4 text-md">กรุณาเปิดไฟล์ <code>index.html</code> แล้ววางข้อมูล <code>firebaseConfig</code> ของคุณตามขั้นตอนในคู่มือ</p>
-                </div>
-            `;
-            throw new Error("Firebase config is missing. Please paste your config object in the script section.");
+        if (!firebaseConfig.apiKey || firebaseConfig.apiKey.includes("...")) {
+            document.body.innerHTML = `<div class="h-screen w-screen flex flex-col justify-center items-center text-center p-4 bg-red-100 text-red-800"><h1 class="text-3xl font-bold mb-4">ข้อผิดพลาดในการตั้งค่า</h1><p class="text-lg">ไม่พบข้อมูลการตั้งค่า Firebase (Firebase Config)</p><p class="mt-4 text-md">กรุณาเปิดไฟล์ <code>index.html</code> แล้ววางข้อมูล <code>firebaseConfig</code> ของคุณตามขั้นตอนในคู่มือ</p></div>`;
+            throw new Error("Firebase config is missing.");
         }
 
         const appId = 'default-business-tool-app';
-        let app, auth, db;
+        let app, auth, db, storage;
         try {
             app = initializeApp(firebaseConfig);
             auth = getAuth(app);
             db = getFirestore(app);
+            storage = getStorage(app);
         } catch (error) {
-             document.body.innerHTML = `
-                <div class="h-screen w-screen flex flex-col justify-center items-center text-center p-4 bg-red-100 text-red-800">
-                    <h1 class="text-3xl font-bold mb-4">ข้อผิดพลาดในการเชื่อมต่อ Firebase</h1>
-                    <p class="text-lg">เกิดข้อผิดพลาด: ${error.message}</p>
-                    <p class="mt-4 text-md">โปรดตรวจสอบว่าข้อมูล <code>firebaseConfig</code> ของคุณถูกต้องหรือไม่</p>
-                </div>
-            `;
+             document.body.innerHTML = `<div class="h-screen w-screen flex flex-col justify-center items-center text-center p-4 bg-red-100 text-red-800"><h1 class="text-3xl font-bold mb-4">ข้อผิดพลาดในการเชื่อมต่อ Firebase</h1><p class="text-lg">เกิดข้อผิดพลาด: ${error.message}</p><p class="mt-4 text-md">โปรดตรวจสอบว่าข้อมูล <code>firebaseConfig</code> ของคุณถูกต้องหรือไม่</p></div>`;
             throw new Error("Firebase initialization failed: " + error.message);
         }
         
@@ -327,19 +337,14 @@
         }
 
         window.signOutUser = () => {
-            signOut(auth).catch((error) => {
-                console.error("Sign Out Error", error);
-            });
+            signOut(auth).catch((error) => console.error("Sign Out Error", error));
         }
 
         onAuthStateChanged(auth, (user) => {
             const mainApp = document.getElementById('app-container');
             const body = document.body;
-        
             const existingLoginScreen = document.getElementById('login-screen');
-            if (existingLoginScreen) {
-                existingLoginScreen.remove();
-            }
+            if (existingLoginScreen) existingLoginScreen.remove();
         
             if (user) {
                 userId = user.uid;
@@ -361,14 +366,7 @@
                 const loginScreen = document.createElement('div');
                 loginScreen.id = 'login-screen';
                 loginScreen.className = 'h-screen w-screen flex flex-col justify-center items-center text-center p-4 bg-gray-50';
-                loginScreen.innerHTML = `
-                    <h1 class="text-4xl md:text-5xl font-bold text-gray-700 mb-2">ระบบจัดการธุรกิจ</h1>
-                    <p class="text-lg text-gray-500 mb-8">กรุณาลงชื่อเข้าใช้เพื่อจัดการข้อมูลของคุณ</p>
-                    <button onclick="signInWithGoogle()" class="bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg hover:bg-blue-700 text-xl flex items-center transition transform hover:scale-105">
-                        <svg class="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" /><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" /><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" /><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" /></svg>
-                        ลงชื่อเข้าใช้ด้วย Google
-                    </button>
-                `;
+                loginScreen.innerHTML = `<h1 class="text-4xl md:text-5xl font-bold text-gray-700 mb-2">ระบบจัดการธุรกิจ</h1><p class="text-lg text-gray-500 mb-8">กรุณาลงชื่อเข้าใช้เพื่อจัดการข้อมูลของคุณ</p><button onclick="signInWithGoogle()" class="bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg hover:bg-blue-700 text-xl flex items-center transition transform hover:scale-105"><svg class="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" /><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" /><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" /><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" /></svg> ลงชื่อเข้าใช้ด้วย Google</button>`;
                 body.prepend(loginScreen);
                 delete body.dataset.appInitialized;
             }
@@ -385,12 +383,8 @@
             return `artifacts/${appId}/users/${userId}/${collectionName}`;
         }
         
-        function getDocPath(collectionName, docId) {
-             return `artifacts/${appId}/users/${userId}/${collectionName}/${docId}`;
-        }
-        
         function setupListeners() {
-            onSnapshot(doc(db, getDocPath('app_settings', 'company_info')), (docSnap) => {
+            onSnapshot(doc(db, getCollectionPath('app_settings'), 'company_info'), (docSnap) => {
                 if (docSnap.exists()) {
                     companyInfo = docSnap.data();
                     populateSettingsForm();
@@ -405,16 +399,7 @@
                     const product = { id: docSnap.id, ...docSnap.data() };
                     inventoryCache.push(product);
                     const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="p-3">${product.code || '-'}</td>
-                        <td class="p-3 font-bold">${product.name}</td>
-                        <td class="p-3">${parseFloat(product.price).toFixed(2)}</td>
-                        <td class="p-3">${product.quantity}</td>
-                        <td class="p-3 space-x-2">
-                            <button class="text-blue-500 hover:text-blue-700"><i class="fas fa-edit"></i></button>
-                            <button class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
-                        </td>
-                    `;
+                    row.innerHTML = `<td class="p-3">${product.code || '-'}</td><td class="p-3 font-bold">${product.name}</td><td class="p-3">${parseFloat(product.price).toFixed(2)}</td><td class="p-3">${product.quantity}</td><td class="p-3 space-x-2"><button title="แก้ไข" class="text-blue-500 hover:text-blue-700"><i class="fas fa-edit"></i></button><button title="ลบ" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button></td>`;
                     row.querySelector('.fa-edit').parentElement.onclick = () => openInventoryModal(docSnap.id);
                     row.querySelector('.fa-trash').parentElement.onclick = () => deleteInventoryItem(docSnap.id);
                     tableBody.appendChild(row);
@@ -429,49 +414,74 @@
                     const customer = { id: docSnap.id, ...docSnap.data() };
                     customersCache.push(customer);
                     const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="p-3 font-bold">${customer.name}</td>
-                        <td class="p-3">${customer.address}</td>
-                        <td class="p-3">${customer.phone || '-'}</td>
-                        <td class="p-3">${customer.taxId || '-'}</td>
-                        <td class="p-3 space-x-2">
-                            <button class="text-blue-500 hover:text-blue-700"><i class="fas fa-edit"></i></button>
-                            <button class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button>
-                        </td>
-                    `;
+                    row.innerHTML = `<td class="p-3 font-bold">${customer.name}</td><td class="p-3">${customer.address}</td><td class="p-3">${customer.phone || '-'}</td><td class="p-3">${customer.taxId || '-'}</td><td class="p-3 space-x-2"><button title="แก้ไข" class="text-blue-500 hover:text-blue-700"><i class="fas fa-edit"></i></button><button title="ลบ" class="text-red-500 hover:text-red-700"><i class="fas fa-trash"></i></button></td>`;
                     row.querySelector('.fa-edit').parentElement.onclick = () => openCustomerModal(docSnap.id);
                     row.querySelector('.fa-trash').parentElement.onclick = () => deleteCustomer(docSnap.id);
                     tableBody.appendChild(row);
                 });
             });
 
-            onSnapshot(collection(db, getCollectionPath('documents')), (snapshot) => {
+            onSnapshot(query(collection(db, getCollectionPath('documents'))), (snapshot) => {
                 const tableBody = document.getElementById('history-table-body');
                 tableBody.innerHTML = '';
-                snapshot.docs.sort((a, b) => b.data().date.toMillis() - a.data().date.toMillis()).forEach(docSnap => {
+                const docs = snapshot.docs.sort((a, b) => b.data().date.toMillis() - a.data().date.toMillis());
+                
+                docs.forEach(docSnap => {
                     const docData = docSnap.data();
                     const date = docData.date.toDate().toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' });
                     const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td class="p-3">${docData.type === 'quotation' ? 'ใบเสนอราคา' : 'ใบเสร็จ'}</td>
-                        <td class="p-3">${docData.number}</td>
-                        <td class="p-3">${docData.customer.name}</td>
-                        <td class="p-3">${date}</td>
-                        <td class="p-3 text-right">${parseFloat(docData.grandTotal).toFixed(2)}</td>
-                        <td class="p-3"><button class="text-blue-500 hover:underline">ดูรายละเอียด</button></td>
-                    `;
-                    row.querySelector('button').onclick = () => viewDocument(docSnap.id);
+                    
+                    const actionsCell = document.createElement('td');
+                    actionsCell.className = 'p-3 space-x-3';
+
+                    const viewBtn = document.createElement('button');
+                    viewBtn.innerHTML = 'ดู';
+                    viewBtn.className = 'text-blue-500 hover:underline';
+                    viewBtn.onclick = () => viewDocument(docSnap.id);
+                    actionsCell.appendChild(viewBtn);
+
+                    if (docData.type === 'quotation') {
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.innerHTML = `<i class="fas fa-trash text-red-500 hover:text-red-700"></i>`;
+                        deleteBtn.title = "ลบใบเสนอราคา";
+                        deleteBtn.onclick = () => deleteDocument(docSnap.id);
+                        actionsCell.appendChild(deleteBtn);
+                    }
+
+                    row.innerHTML = `<td class="p-3">${docData.type === 'quotation' ? 'ใบเสนอราคา' : 'ใบเสร็จ'}</td><td class="p-3">${docData.number}</td><td class="p-3">${docData.customer.name}</td><td class="p-3">${date}</td><td class="p-3 text-right">${parseFloat(docData.grandTotal).toFixed(2)}</td>`;
+                    row.appendChild(actionsCell);
                     tableBody.appendChild(row);
                 });
             });
         }
         
         window.showPage = (pageId) => {
-            document.querySelectorAll('#app-pages .page').forEach(page => page.classList.remove('active-page'));
-            document.getElementById(pageId).classList.add('active-page');
+            document.querySelectorAll('#app-pages .page').forEach(page => page.style.display = 'none');
+            document.getElementById(pageId).style.display = 'block';
         }
 
         function setupUI() {
+            document.getElementById('logo-upload').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        document.getElementById('logo-preview').src = event.target.result;
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+            document.getElementById('letterhead-upload').addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        document.getElementById('letterhead-preview').src = event.target.result;
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+
             document.getElementById('settings-form').addEventListener('submit', saveSettings);
             document.getElementById('inventory-form').addEventListener('submit', saveInventoryItem);
             document.getElementById('customer-form').addEventListener('submit', saveCustomer);
@@ -479,7 +489,7 @@
         }
 
         async function checkCompanySettings() {
-            const docRef = doc(db, getDocPath('app_settings', 'company_info'));
+            const docRef = doc(db, getCollectionPath('app_settings'), 'company_info');
             const docSnap = await getDoc(docRef);
             if (!docSnap.exists() || !docSnap.data().name) {
                 showPage('settings');
@@ -494,35 +504,62 @@
                 document.getElementById('company-tax-id').value = companyInfo.taxId || '';
                 document.getElementById('company-phone').value = companyInfo.phone || '';
                 document.getElementById('company-logo-url').value = companyInfo.logoUrl || '';
+                document.getElementById('logo-preview').src = companyInfo.logoUrl || 'https://placehold.co/200x80/e2e8f0/e2e8f0?text=+';
+                document.getElementById('company-letterhead-url').value = companyInfo.letterheadUrl || '';
+                document.getElementById('letterhead-preview').src = companyInfo.letterheadUrl || 'https://placehold.co/800x200/e2e8f0/e2e8f0?text=+';
             }
         }
         
         async function saveSettings(e) {
             e.preventDefault();
-            const settingsData = {
-                name: document.getElementById('company-name').value.trim(),
-                address: document.getElementById('company-address').value.trim(),
-                taxId: document.getElementById('company-tax-id').value.trim(),
-                phone: document.getElementById('company-phone').value.trim(),
-                logoUrl: document.getElementById('company-logo-url').value.trim(),
-            };
-            if (!settingsData.name || !settingsData.address) {
-                alert('กรุณากรอกชื่อและที่อยู่บริษัท');
-                return;
-            }
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'กำลังบันทึก...';
+
             try {
-                await setDoc(doc(db, getDocPath('app_settings', 'company_info')), settingsData, { merge: true });
+                let logoUrl = document.getElementById('company-logo-url').value;
+                const logoFile = document.getElementById('logo-upload').files[0];
+                if (logoFile) {
+                    const logoStorageRef = ref(storage, `logos/${userId}/${logoFile.name}`);
+                    await uploadBytes(logoStorageRef, logoFile);
+                    logoUrl = await getDownloadURL(logoStorageRef);
+                }
+
+                let letterheadUrl = document.getElementById('company-letterhead-url').value;
+                const letterheadFile = document.getElementById('letterhead-upload').files[0];
+                if (letterheadFile) {
+                    const letterheadStorageRef = ref(storage, `letterheads/${userId}/${letterheadFile.name}`);
+                    await uploadBytes(letterheadStorageRef, letterheadFile);
+                    letterheadUrl = await getDownloadURL(letterheadStorageRef);
+                }
+                
+                const settingsData = {
+                    name: document.getElementById('company-name').value.trim(),
+                    address: document.getElementById('company-address').value.trim(),
+                    taxId: document.getElementById('company-tax-id').value.trim(),
+                    phone: document.getElementById('company-phone').value.trim(),
+                    logoUrl: logoUrl,
+                    letterheadUrl: letterheadUrl
+                };
+                if (!settingsData.name || !settingsData.address) {
+                    throw new Error('กรุณากรอกชื่อและที่อยู่บริษัท');
+                }
+                
+                await setDoc(doc(db, getCollectionPath('app_settings'), 'company_info'), settingsData, { merge: true });
                 alert('บันทึกข้อมูลบริษัทสำเร็จแล้ว');
                 showPage('dashboard');
+
             } catch(error) {
                 console.error("Error saving settings:", error);
                 alert('เกิดข้อผิดพลาดในการบันทึกข้อมูลตั้งค่า: ' + error.message);
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'บันทึกข้อมูล';
             }
         }
 
         window.openInventoryModal = (id = null) => {
-            const form = document.getElementById('inventory-form');
-            form.reset();
+            document.getElementById('inventory-form').reset();
             document.getElementById('inventory-id').value = '';
              if (id) {
                 document.getElementById('inventory-modal-title').textContent = 'แก้ไขสินค้า';
@@ -540,16 +577,13 @@
             document.getElementById('inventory-modal').classList.remove('hidden');
         }
 
-        window.closeInventoryModal = () => {
-            document.getElementById('inventory-modal').classList.add('hidden');
-        }
+        window.closeInventoryModal = () => document.getElementById('inventory-modal').classList.add('hidden');
 
         async function saveInventoryItem(e) {
             e.preventDefault();
             const name = document.getElementById('product-name').value.trim();
             const priceStr = document.getElementById('product-price').value;
             const quantityStr = document.getElementById('product-quantity').value;
-
             if (!name || !priceStr || !quantityStr) {
                 alert('กรุณากรอกข้อมูลสินค้าให้ครบถ้วน (ชื่อ, ราคา, จำนวน)');
                 return;
@@ -560,15 +594,8 @@
                 alert('กรุณากรอกราคาและจำนวนให้เป็นตัวเลขที่ถูกต้อง');
                 return;
             }
-
             const id = document.getElementById('inventory-id').value;
-            const data = {
-                code: document.getElementById('product-code').value.trim(),
-                name: name,
-                price: price,
-                quantity: quantity
-            };
-            
+            const data = { code: document.getElementById('product-code').value.trim(), name, price, quantity };
             try {
                 if (id) {
                     await updateDoc(doc(db, getCollectionPath('inventory'), id), data);
@@ -596,8 +623,7 @@
         }
         
         window.openCustomerModal = (id = null) => {
-            const form = document.getElementById('customer-form');
-            form.reset();
+            document.getElementById('customer-form').reset();
             document.getElementById('customer-id').value = '';
             if (id) {
                 document.getElementById('customer-modal-title').textContent = 'แก้ไขข้อมูลลูกค้า';
@@ -615,19 +641,12 @@
             document.getElementById('customer-modal').classList.remove('hidden');
         }
 
-        window.closeCustomerModal = () => {
-            document.getElementById('customer-modal').classList.add('hidden');
-        }
+        window.closeCustomerModal = () => document.getElementById('customer-modal').classList.add('hidden');
 
         async function saveCustomer(e) {
             e.preventDefault();
             const id = document.getElementById('customer-id').value;
-            const data = {
-                name: document.getElementById('customer-name').value.trim(),
-                address: document.getElementById('customer-address').value.trim(),
-                phone: document.getElementById('customer-phone').value.trim(),
-                taxId: document.getElementById('customer-tax-id').value.trim(),
-            };
+            const data = { name: document.getElementById('customer-name').value.trim(), address: document.getElementById('customer-address').value.trim(), phone: document.getElementById('customer-phone').value.trim(), taxId: document.getElementById('customer-tax-id').value.trim() };
             if (!data.name || !data.address) {
                 alert('กรุณากรอกชื่อและที่อยู่ของลูกค้า');
                 return;
@@ -657,6 +676,18 @@
                 }
             }
         }
+        
+        window.deleteDocument = async (id) => {
+             if (confirm('คุณต้องการลบใบเสนอราคานี้ใช่หรือไม่?')) {
+                try {
+                    await deleteDoc(doc(db, getCollectionPath('documents'), id));
+                    alert('ลบใบเสนอราคาสำเร็จ');
+                } catch (error) {
+                    console.error("Error deleting document:", error);
+                    alert("เกิดข้อผิดพลาดในการลบเอกสาร: " + error.message);
+                }
+            }
+        }
 
         window.openDocumentModal = (type) => {
             const form = document.getElementById('document-form');
@@ -664,23 +695,16 @@
             document.getElementById('document-type').value = type;
             document.getElementById('document-modal-title').innerText = type === 'quotation' ? 'สร้างใบเสนอราคา' : 'สร้างใบเสร็จ';
             document.getElementById('document-date').valueAsDate = new Date();
-
             const customerSelect = document.getElementById('document-customer');
             customerSelect.innerHTML = '<option value="">-- เลือกลูกค้า --</option>';
-            customersCache.forEach(c => {
-                customerSelect.innerHTML += `<option value="${c.id}">${c.name}</option>`;
-            });
-            
+            customersCache.forEach(c => customerSelect.innerHTML += `<option value="${c.id}">${c.name}</option>`);
             document.getElementById('document-items').innerHTML = '';
             addDocumentItem();
             updateTotals();
-
             document.getElementById('document-modal').classList.remove('hidden');
         }
 
-        window.closeDocumentModal = () => {
-            document.getElementById('document-modal').classList.add('hidden');
-        }
+        window.closeDocumentModal = () => document.getElementById('document-modal').classList.add('hidden');
 
         let itemCounter = 0;
         window.addDocumentItem = () => {
@@ -688,26 +712,12 @@
             const itemRow = document.createElement('div');
             itemRow.className = 'grid grid-cols-12 gap-2 items-center';
             itemRow.id = `item-row-${itemCounter}`;
-            
             let productOptions = '<option value="">-- เลือกสินค้า --</option>';
-            inventoryCache.forEach(p => {
-                productOptions += `<option value="${p.id}" data-price="${p.price}">${p.name} (คงเหลือ: ${p.quantity})</option>`;
-            });
-
-            itemRow.innerHTML = `
-                <div class="col-span-6">
-                    <select class="item-product w-full p-2 border rounded" onchange="updateItemPrice(this)">${productOptions}</select>
-                </div>
-                <div class="col-span-2">
-                    <input type="number" class="item-quantity w-full p-2 border rounded" placeholder="จำนวน" min="1" value="1" oninput="updateTotals()">
-                </div>
-                <div class="col-span-3 text-right">
-                    <span class="item-total p-2">0.00</span>
-                </div>
-                <div class="col-span-1 text-right">
-                    <button type="button" onclick="removeDocumentItem('item-row-${itemCounter}')" class="text-red-500 hover:text-red-700"><i class="fas fa-times-circle"></i></button>
-                </div>
-            `;
+            inventoryCache.forEach(p => productOptions += `<option value="${p.id}" data-price="${p.price}">${p.name} (คงเหลือ: ${p.quantity})</option>`);
+            itemRow.innerHTML = `<div class="col-span-6"><select class="item-product w-full p-2 border rounded">${productOptions}</select></div><div class="col-span-2"><input type="number" class="item-quantity w-full p-2 border rounded" placeholder="จำนวน" min="1" value="1"></div><div class="col-span-3 text-right"><span class="item-total p-2">0.00</span></div><div class="col-span-1 text-right"><button type="button" class="text-red-500 hover:text-red-700"><i class="fas fa-times-circle"></i></button></div>`;
+            itemRow.querySelector('.item-product').onchange = () => updateItemPrice(itemRow.querySelector('.item-product'));
+            itemRow.querySelector('.item-quantity').oninput = () => updateTotals();
+            itemRow.querySelector('button').onclick = () => removeDocumentItem(`item-row-${itemCounter}`);
             document.getElementById('document-items').appendChild(itemRow);
         }
 
@@ -717,8 +727,7 @@
         }
 
         window.updateItemPrice = (selectElement) => {
-            const row = selectElement.closest('.grid');
-            row.querySelector('.item-quantity').value = 1;
+            selectElement.closest('.grid').querySelector('.item-quantity').value = 1;
             updateTotals();
         }
 
@@ -734,10 +743,8 @@
                 row.querySelector('.item-total').innerText = itemTotal.toFixed(2);
                 subtotal += itemTotal;
             });
-
             const vat = subtotal * 0.07;
             const grandTotal = subtotal + vat;
-
             document.getElementById('subtotal').innerText = subtotal.toFixed(2);
             document.getElementById('vat').innerText = vat.toFixed(2);
             document.getElementById('grandtotal').innerText = grandTotal.toFixed(2);
@@ -745,7 +752,6 @@
 
         async function saveDocument(e) {
             e.preventDefault();
-            let newDocNumber = '';
             try {
                 const docType = document.getElementById('document-type').value;
                 const customerId = document.getElementById('document-customer').value;
@@ -759,22 +765,18 @@
                     const productId = row.querySelector('.item-product').value;
                     const quantity = parseInt(row.querySelector('.item-quantity').value);
                     if (!productId || !quantity || quantity <= 0) {
-                        hasInvalidItem = true;
-                        return;
+                        hasInvalidItem = true; return;
                     }
                     const product = inventoryCache.find(p => p.id === productId);
                     if (docType === 'receipt' && quantity > product.quantity) {
                         throw new Error(`สินค้า '${product.name}' มีไม่พอ (คงเหลือ ${product.quantity})`);
                     }
-                    items.push({
-                        productId, name: product.name, code: product.code,
-                        quantity, price: product.price, total: product.price * quantity,
-                    });
+                    items.push({ productId, name: product.name, code: product.code, quantity, price: product.price, total: product.price * quantity });
                 });
-                if (hasInvalidItem || items.length === 0) {
-                     throw new Error('กรุณาตรวจสอบรายการสินค้าให้ถูกต้อง (เลือกสินค้าและใส่จำนวนมากกว่า 0)');
-                }
-                const settingsRef = doc(db, getDocPath('app_settings', 'company_info'));
+                if (hasInvalidItem || items.length === 0) throw new Error('กรุณาตรวจสอบรายการสินค้าให้ถูกต้อง');
+                
+                let newDocNumber = '';
+                const settingsRef = doc(db, getCollectionPath('app_settings'), 'company_info');
                 await runTransaction(db, async (transaction) => {
                     const settingsDoc = await transaction.get(settingsRef);
                     if (!settingsDoc.exists()) throw new Error("ไม่พบข้อมูลการตั้งค่าบริษัท");
@@ -798,20 +800,9 @@
                         }
                     }
                 });
-                const docData = {
-                    number: newDocNumber, type: docType, date: new Date(document.getElementById('document-date').value),
-                    customer: { id: customer.id, name: customer.name, address: customer.address, taxId: customer.taxId },
-                    items, subtotal: parseFloat(document.getElementById('subtotal').innerText),
-                    vat: parseFloat(document.getElementById('vat').innerText),
-                    grandTotal: parseFloat(document.getElementById('grandtotal').innerText),
-                    companyInfo: companyInfo
-                };
+                const docData = { number: newDocNumber, type: docType, date: new Date(document.getElementById('document-date').value), customer: { id: customer.id, name: customer.name, address: customer.address, taxId: customer.taxId }, items, subtotal: parseFloat(document.getElementById('subtotal').innerText), vat: parseFloat(document.getElementById('vat').innerText), grandTotal: parseFloat(document.getElementById('grandtotal').innerText), companyInfo };
                 const newDocRef = await addDoc(collection(db, getCollectionPath('documents')), docData);
-                if (docType === 'receipt') {
-                     await addDoc(collection(db, getCollectionPath('revenue')), {
-                        date: docData.date, amount: docData.grandTotal, documentId: newDocRef.id, documentNumber: docData.number
-                    });
-                }
+                if (docType === 'receipt') await addDoc(collection(db, getCollectionPath('revenue')), { date: docData.date, amount: docData.grandTotal, documentId: newDocRef.id, documentNumber: docData.number });
                 alert(`สร้าง ${docType === 'quotation' ? 'ใบเสนอราคา' : 'ใบเสร็จ'} เลขที่ ${newDocNumber} สำเร็จ`);
                 closeDocumentModal();
                 viewDocument(newDocRef.id);
@@ -830,99 +821,11 @@
                 const data = docSnap.data();
                 const printArea = document.getElementById('print-area');
                 let itemsHtml = '';
-                data.items.forEach(item => {
-                    itemsHtml += `
-                        <tr class="border-b">
-                            <td class="p-2">${item.name}</td>
-                            <td class="p-2 text-center">${item.quantity}</td>
-                            <td class="p-2 text-right">${parseFloat(item.price).toFixed(2)}</td>
-                            <td class="p-2 text-right">${parseFloat(item.total).toFixed(2)}</td>
-                        </tr>
-                    `;
-                });
-                const bahttext = (num) => {
-                    num = Number(num.toFixed(2));
-                    let baht = Math.floor(num);
-                    let satang = Math.round((num - baht) * 100);
-                    if (satang === 0) return `(${read(baht)}บาทถ้วน)`;
-                    return `(${read(baht)}บาท${read(satang)}สตางค์)`;
-                }
-                const read = (num) => {
-                    const pos = ["", "สิบ", "ร้อย", "พัน", "หมื่น", "แสน", "ล้าน"];
-                    const digit = ["", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า"];
-                    let out = "";
-                    let n = String(num).split("").reverse().join("");
-                    for (let i = 0; i < n.length; i++) {
-                        let str = "";
-                        let d = Number(n[i]);
-                        if (d !== 0) {
-                            if (i === 0 && d === 1 && n.length > 1) str = "เอ็ด";
-                            else if (i === 1 && d === 1) str = "";
-                            else if (i === 1 && d === 2) str = "ยี่";
-                            else str = digit[d];
-                            str += pos[i];
-                        }
-                        out = str + out;
-                    }
-                    return out;
-                }
+                data.items.forEach(item => itemsHtml += `<tr class="border-b"><td class="p-2">${item.name}</td><td class="p-2 text-center">${item.quantity}</td><td class="p-2 text-right">${parseFloat(item.price).toFixed(2)}</td><td class="p-2 text-right">${parseFloat(item.total).toFixed(2)}</td></tr>`);
+                const bahttext = (num) => { num = Number(num.toFixed(2)); let baht = Math.floor(num); let satang = Math.round((num - baht) * 100); if (satang === 0) return `(${read(baht)}บาทถ้วน)`; return `(${read(baht)}บาท${read(satang)}สตางค์)`; };
+                const read = (num) => { const pos = ["", "สิบ", "ร้อย", "พัน", "หมื่น", "แสน", "ล้าน"], digit = ["", "หนึ่ง", "สอง", "สาม", "สี่", "ห้า", "หก", "เจ็ด", "แปด", "เก้า"]; let out = "", n = String(num).split("").reverse().join(""); for (let i = 0; i < n.length; i++) { let str = "", d = Number(n[i]); if (d !== 0) { if (i === 0 && d === 1 && n.length > 1) str = "เอ็ด"; else if (i === 1 && d === 1) str = ""; else if (i === 1 && d === 2) str = "ยี่"; else str = digit[d]; str += pos[i]; } out = str + out; } return out; };
 
-                printArea.innerHTML = `
-                    <div class="bg-white p-8" style="width: 210mm; min-height: 297mm; margin: auto;">
-                        <div class="no-print mb-4 flex justify-end space-x-2">
-                            <button onclick="window.print()" class="bg-blue-500 text-white px-4 py-2 rounded">พิมพ์</button>
-                            <button onclick="closePrintView()" class="bg-gray-500 text-white px-4 py-2 rounded">ปิด</button>
-                        </div>
-                        <header class="flex justify-between items-start mb-8 border-b-2 pb-4">
-                             <div>
-                                ${data.companyInfo.logoUrl ? `<img src="${data.companyInfo.logoUrl}" alt="logo" class="h-20 mb-4" onerror="this.style.display='none'">` : ''}
-                                <h2 class="text-xl font-bold">${data.companyInfo.name}</h2>
-                                <p class="text-sm" style="white-space: pre-wrap;">${data.companyInfo.address}</p>
-                                <p class="text-sm">โทร: ${data.companyInfo.phone}</p>
-                                <p class="text-sm">เลขประจำตัวผู้เสียภาษี: ${data.companyInfo.taxId}</p>
-                            </div>
-                            <div class="text-right flex-shrink-0">
-                                 <h1 class="text-2xl font-bold mb-2">${data.type === 'quotation' ? 'ใบเสนอราคา / QUOTATION' : 'ใบกำกับภาษี / ใบเสร็จรับเงิน'}</h1>
-                                 <p>เลขที่/No.: ${data.number}</p>
-                                 <p>วันที่/Date: ${data.date.toDate().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric'})}</p>
-                            </div>
-                        </header>
-                        <section class="border rounded-lg p-4 mb-8">
-                            <h3 class="font-bold">ข้อมูลลูกค้า</h3>
-                            <p>${data.customer.name}</p>
-                            <p style="white-space: pre-wrap;">ที่อยู่: ${data.customer.address}</p>
-                            <p>เลขประจำตัวผู้เสียภาษี: ${data.customer.taxId || '-'}</p>
-                        </section>
-                        <table class="w-full mb-8 text-sm">
-                            <thead>
-                                <tr class="border-b-2 border-black bg-gray-100">
-                                    <th class="p-2 text-left">รายการ (Description)</th>
-                                    <th class="p-2 text-center" style="width:15%">จำนวน (Quantity)</th>
-                                    <th class="p-2 text-right" style="width:20%">ราคา/หน่วย (Unit Price)</th>
-                                    <th class="p-2 text-right" style="width:20%">รวมเงิน (Amount)</th>
-                                </tr>
-                            </thead>
-                            <tbody>${itemsHtml}</tbody>
-                        </table>
-                        <footer class="flex justify-between items-start pt-4">
-                            <div class="w-1/2 text-sm">
-                                <p>ได้รับสินค้าตามรายการถูกต้องเรียบร้อยแล้ว</p>
-                                <div class="mt-20">ผู้รับสินค้า (Receiver)</div>
-                                <div class="mt-4">วันที่ (Date) _____/_____/______</div>
-                            </div>
-                            <div class="w-1/2">
-                                <table class="w-full text-sm">
-                                    <tbody>
-                                        <tr><td class="p-2">รวมเป็นเงิน (Subtotal)</td><td class="p-2 text-right">${data.subtotal.toFixed(2)}</td></tr>
-                                        <tr><td class="p-2">ภาษีมูลค่าเพิ่ม 7% (VAT 7%)</td><td class="p-2 text-right">${data.vat.toFixed(2)}</td></tr>
-                                        <tr class="font-bold border-t-2 border-b-2 border-black text-lg"><td class="p-2">ยอดรวมสุทธิ (Grand Total)</td><td class="p-2 text-right">${data.grandTotal.toFixed(2)}</td></tr>
-                                    </tbody>
-                                </table>
-                                 <div class="font-bold mt-2 text-center bg-gray-100 p-2 rounded-lg">${bahttext(data.grandTotal)}</div>
-                            </div>
-                        </footer>
-                    </div>
-                `;
+                printArea.innerHTML = `<div class="bg-white p-8" style="width: 210mm; min-height: 297mm; margin: auto;"> ${data.companyInfo.letterheadUrl ? `<img src="${data.companyInfo.letterheadUrl}" alt="Letterhead" class="w-full" onerror="this.style.display='none'">` : ''}<div class="no-print mb-4 flex justify-end space-x-2"><button onclick="window.print()" class="bg-blue-500 text-white px-4 py-2 rounded">พิมพ์</button><button onclick="closePrintView()" class="bg-gray-500 text-white px-4 py-2 rounded">ปิด</button></div><header class="flex justify-between items-start my-8 border-b-2 pb-4"><div>${data.companyInfo.logoUrl ? `<img src="${data.companyInfo.logoUrl}" alt="logo" class="h-20 mb-4" onerror="this.style.display='none'">` : ''}<h2 class="text-xl font-bold">${data.companyInfo.name}</h2><p class="text-sm" style="white-space: pre-wrap;">${data.companyInfo.address}</p><p class="text-sm">โทร: ${data.companyInfo.phone}</p><p class="text-sm">เลขประจำตัวผู้เสียภาษี: ${data.companyInfo.taxId}</p></div><div class="text-right flex-shrink-0"><h1 class="text-2xl font-bold mb-2">${data.type === 'quotation' ? 'ใบเสนอราคา / QUOTATION' : 'ใบกำกับภาษี / ใบเสร็จรับเงิน'}</h1><p>เลขที่/No.: ${data.number}</p><p>วันที่/Date: ${data.date.toDate().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric'})}</p></div></header><section class="border rounded-lg p-4 mb-8"><h3 class="font-bold">ข้อมูลลูกค้า</h3><p>${data.customer.name}</p><p style="white-space: pre-wrap;">ที่อยู่: ${data.customer.address}</p><p>เลขประจำตัวผู้เสียภาษี: ${data.customer.taxId || '-'}</p></section><table class="w-full mb-8 text-sm"><thead><tr class="border-b-2 border-black bg-gray-100"><th class="p-2 text-left">รายการ (Description)</th><th class="p-2 text-center" style="width:15%">จำนวน (Quantity)</th><th class="p-2 text-right" style="width:20%">ราคา/หน่วย (Unit Price)</th><th class="p-2 text-right" style="width:20%">รวมเงิน (Amount)</th></tr></thead><tbody>${itemsHtml}</tbody></table><footer class="flex justify-between items-start pt-4"><div class="w-1/2 text-sm"><p>ได้รับสินค้าตามรายการถูกต้องเรียบร้อยแล้ว</p><div class="mt-20">ผู้รับสินค้า (Receiver)</div><div class="mt-4">วันที่ (Date) _____/_____/______</div></div><div class="w-1/2"><table class="w-full text-sm"><tbody><tr><td class="p-2">รวมเป็นเงิน (Subtotal)</td><td class="p-2 text-right">${data.subtotal.toFixed(2)}</td></tr><tr><td class="p-2">ภาษีมูลค่าเพิ่ม 7% (VAT 7%)</td><td class="p-2 text-right">${data.vat.toFixed(2)}</td></tr><tr class="font-bold border-t-2 border-b-2 border-black text-lg"><td class="p-2">ยอดรวมสุทธิ (Grand Total)</td><td class="p-2 text-right">${data.grandTotal.toFixed(2)}</td></tr></tbody></table><div class="font-bold mt-2 text-center bg-gray-100 p-2 rounded-lg">${bahttext(data.grandTotal)}</div></div></footer></div>`;
                 document.getElementById('app-container').classList.add('hidden');
                 document.getElementById('print-area').classList.remove('hidden');
             } catch(error) {
