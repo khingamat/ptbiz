@@ -22,20 +22,12 @@
             @apply px-6 py-3 rounded-lg shadow-md font-bold text-lg text-gray-700 transition-transform transform hover:scale-105;
         }
 
-        .modal {
-            @apply fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50;
-        }
-        
-        .modal-content {
-            @apply bg-white p-8 rounded-xl shadow-2xl w-full max-w-2xl transform transition-all scale-95;
-        }
-
         .page {
-            @apply hidden;
+            display: none;
         }
 
         .active-page {
-            @apply block;
+            display: block;
         }
         
         /* Print styles */
@@ -58,21 +50,20 @@
         }
     </style>
 </head>
-<body class="text-gray-800">
+<body>
 
-    <div id="app-container" class="max-w-7xl mx-auto p-4 md:p-8">
+    <div id="app-container" class="max-w-7xl mx-auto p-4 md:p-8 hidden">
         <!-- Header -->
-       <header class="text-center mb-8">
-    <div id="auth-container" class="absolute top-4 right-4">
-         <!-- Buttons will appear here -->
-    </div>
-    <h1 class="text-4xl md:text-5xl font-bold text-gray-700">ระบบจัดการธุรกิจ</h1>
-    <p class="text-lg text-gray-500 mt-2">สร้างและจัดการเอกสารธุรกิจของคุณได้อย่างง่ายดาย</p>
-    <p id="user-info" class="text-sm text-gray-500 mt-2 hidden">
-        <span id="user-display-name"></span> (<span id="user-email"></span>)
-    </p>
-</header>
-
+        <header class="text-center mb-8 relative">
+            <div id="auth-container" class="absolute top-0 right-0">
+                 <!-- Login/Logout Button will appear here -->
+            </div>
+            <h1 class="text-4xl md:text-5xl font-bold text-gray-700">ระบบจัดการธุรกิจ</h1>
+            <p class="text-lg text-gray-500 mt-2">สร้างและจัดการเอกสารธุรกิจของคุณได้อย่างง่ายดาย</p>
+            <p id="user-info" class="text-sm text-gray-500 mt-2 hidden">
+                <span id="user-display-name"></span> (<span id="user-email"></span>)
+            </p>
+        </header>
 
         <!-- Main Navigation -->
         <nav id="main-nav" class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
@@ -190,8 +181,8 @@
     </div>
 
     <!-- Modals -->
-    <div id="inventory-modal" class="modal hidden">
-        <div class="modal-content">
+    <div id="inventory-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 hidden">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-2xl">
             <h3 id="inventory-modal-title" class="text-2xl font-bold mb-6">เพิ่ม/แก้ไขสินค้า</h3>
             <form id="inventory-form" class="space-y-4">
                 <input type="hidden" id="inventory-id">
@@ -207,8 +198,8 @@
         </div>
     </div>
     
-    <div id="customer-modal" class="modal hidden">
-        <div class="modal-content">
+    <div id="customer-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 hidden">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-2xl">
              <h3 id="customer-modal-title" class="text-2xl font-bold mb-6">เพิ่ม/แก้ไขข้อมูลลูกค้า</h3>
             <form id="customer-form" class="space-y-4">
                 <input type="hidden" id="customer-id">
@@ -224,8 +215,8 @@
         </div>
     </div>
 
-    <div id="document-modal" class="modal hidden">
-        <div class="modal-content max-w-4xl">
+    <div id="document-modal" class="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 hidden">
+        <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-4xl">
             <h3 id="document-modal-title" class="text-2xl font-bold mb-6">สร้างเอกสาร</h3>
             <form id="document-form" class="space-y-4">
                 <input type="hidden" id="document-type">
@@ -271,92 +262,108 @@
 
         // --- FIREBASE CONFIGURATION ---
         const firebaseConfig = {
-  apiKey: "AIzaSyAl-4g75Azf820VWoSnUC_fZjPmPSFY7Kk",
-  authDomain: "ptbiz-cf8f8.firebaseapp.com",
-  projectId: "ptbiz-cf8f8",
-  storageBucket: "ptbiz-cf8f8.firebasestorage.app",
-  messagingSenderId: "183705678378",
-  appId: "1:183705678378:web:7182914636995d952c0953"
-};
+            apiKey: "AIzaSyAl-4g75Azf820VWoSnUC_fZjPmPSFY7Kk",
+            authDomain: "ptbiz-cf8f8.firebaseapp.com",
+            projectId: "ptbiz-cf8f8",
+            storageBucket: "ptbiz-cf8f8.appspot.com",
+            messagingSenderId: "183705678378",
+            appId: "1:183705678378:web:7182914636995d952c0953"
+        };
+        
+        // --- PRE-FLIGHT CHECK ---
+        if (!firebaseConfig.apiKey) {
+            document.body.innerHTML = `
+                <div class="h-screen w-screen flex flex-col justify-center items-center text-center p-4 bg-red-100 text-red-800">
+                    <h1 class="text-3xl font-bold mb-4">ข้อผิดพลาดในการตั้งค่า</h1>
+                    <p class="text-lg">ไม่พบข้อมูลการตั้งค่า Firebase (Firebase Config)</p>
+                    <p class="mt-4 text-md">กรุณาเปิดไฟล์ <code>index.html</code> แล้ววางข้อมูล <code>firebaseConfig</code> ของคุณตามขั้นตอนในคู่มือ</p>
+                </div>
+            `;
+            // Stop the script execution
+            throw new Error("Firebase config is missing. Please paste your config object in the script section.");
+        }
+
+        const appId = 'default-business-tool-app';
         
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-
+        
         let userId = null;
-let companyInfo = {};
-let inventoryCache = [];
-let customersCache = [];
+        let companyInfo = {};
+        let inventoryCache = [];
+        let customersCache = [];
 
-const provider = new GoogleAuthProvider();
+        const provider = new GoogleAuthProvider();
 
-window.signInWithGoogle = () => {
-    signInWithPopup(auth, provider).catch((error) => {
-        console.error("Google Sign-In Error", error);
-        alert('เกิดข้อผิดพลาดในการลงชื่อเข้าใช้ด้วย Google: ' + error.message);
-    });
-}
-
-window.signOutUser = () => {
-    signOut(auth).catch((error) => {
-        console.error("Sign Out Error", error);
-    });
-}
-
-// --- AUTHENTICATION ---
-onAuthStateChanged(auth, (user) => {
-    const mainApp = document.getElementById('app-container');
-    const body = document.body;
-
-    // Remove any existing login screen
-    const existingLoginScreen = document.getElementById('login-screen');
-    if (existingLoginScreen) {
-        existingLoginScreen.remove();
-    }
-
-    if (user) {
-        // User is signed in.
-        userId = user.uid;
-
-        // Show main app and update user info in the header
-        mainApp.classList.remove('hidden');
-        const authContainer = document.getElementById('auth-container');
-        const userInfo = document.getElementById('user-info');
-        authContainer.innerHTML = `<button onclick="signOutUser()" class="bg-red-500 text-white px-4 py-2 rounded-lg shadow hover:bg-red-600">ออกจากระบบ</button>`;
-        document.getElementById('user-display-name').textContent = user.displayName || 'ผู้ใช้';
-        document.getElementById('user-email').textContent = user.email || '';
-        userInfo.classList.remove('hidden');
-
-        // Initialize app logic if it hasn't been already
-        if (!body.dataset.appInitialized) {
-            initializeAppLogic();
-            body.dataset.appInitialized = 'true';
+        window.signInWithGoogle = () => {
+            signInWithPopup(auth, provider).catch((error) => {
+                console.error("Google Sign-In Error", error);
+                alert('เกิดข้อผิดพลาดในการลงชื่อเข้าใช้ด้วย Google: ' + error.message);
+            });
         }
-    } else {
-        // User is signed out.
-        userId = null;
 
-        // Hide main app
-        mainApp.classList.add('hidden');
+        window.signOutUser = () => {
+            signOut(auth).catch((error) => {
+                console.error("Sign Out Error", error);
+            });
+        }
 
-        // Create and show a full-page login screen
-        const loginScreen = document.createElement('div');
-        loginScreen.id = 'login-screen';
-        loginScreen.className = 'h-screen w-screen flex flex-col justify-center items-center text-center p-4 bg-gray-50';
-        loginScreen.innerHTML = `
-            <h1 class="text-4xl md:text-5xl font-bold text-gray-700 mb-2">ระบบจัดการธุรกิจ</h1>
-            <p class="text-lg text-gray-500 mb-8">กรุณาลงชื่อเข้าใช้เพื่อจัดการข้อมูลของคุณ</p>
-            <button onclick="signInWithGoogle()" class="bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg hover:bg-blue-700 text-xl flex items-center transition transform hover:scale-105">
-                <svg class="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" /><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" /><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" /><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" /></svg>
-                ลงชื่อเข้าใช้ด้วย Google
-            </button>
-        `;
-        body.prepend(loginScreen);
+        // --- AUTHENTICATION ---
+        onAuthStateChanged(auth, (user) => {
+            const mainApp = document.getElementById('app-container');
+            const body = document.body;
+        
+            // Remove any existing login screen
+            const existingLoginScreen = document.getElementById('login-screen');
+            if (existingLoginScreen) {
+                existingLoginScreen.remove();
+            }
+        
+            if (user) {
+                // User is signed in.
+                userId = user.uid;
+        
+                // Show main app and update user info in the header
+                mainApp.classList.remove('hidden');
+                const authContainer = document.getElementById('auth-container');
+                const userInfo = document.getElementById('user-info');
+                authContainer.innerHTML = `<button onclick="signOutUser()" class="bg-red-500 text-white px-4 py-2 rounded-lg shadow hover:bg-red-600">ออกจากระบบ</button>`;
+                document.getElementById('user-display-name').textContent = user.displayName || 'ผู้ใช้';
+                document.getElementById('user-email').textContent = user.email || '';
+                userInfo.classList.remove('hidden');
+        
+                // Initialize app logic if it hasn't been already
+                if (!body.dataset.appInitialized) {
+                    initializeAppLogic();
+                    body.dataset.appInitialized = 'true';
+                }
+            } else {
+                // User is signed out.
+                userId = null;
+        
+                // Hide main app
+                mainApp.classList.add('hidden');
+        
+                // Create and show a full-page login screen
+                const loginScreen = document.createElement('div');
+                loginScreen.id = 'login-screen';
+                loginScreen.className = 'h-screen w-screen flex flex-col justify-center items-center text-center p-4 bg-gray-50';
+                loginScreen.innerHTML = `
+                    <h1 class="text-4xl md:text-5xl font-bold text-gray-700 mb-2">ระบบจัดการธุรกิจ</h1>
+                    <p class="text-lg text-gray-500 mb-8">กรุณาลงชื่อเข้าใช้เพื่อจัดการข้อมูลของคุณ</p>
+                    <button onclick="signInWithGoogle()" class="bg-blue-600 text-white px-6 py-3 rounded-lg shadow-lg hover:bg-blue-700 text-xl flex items-center transition transform hover:scale-105">
+                        <svg class="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" /><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" /><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" /><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" /></svg>
+                        ลงชื่อเข้าใช้ด้วย Google
+                    </button>
+                `;
+                body.prepend(loginScreen);
+        
+                // Reset the flag
+                delete body.dataset.appInitialized;
+            }
+        });
 
-        // Reset the flag
-        delete body.dataset.appInitialized;
-    }
-});
 
         // --- MAIN APP LOGIC ---
         function initializeAppLogic() {
@@ -434,7 +441,7 @@ onAuthStateChanged(auth, (user) => {
                 tableBody.innerHTML = '';
                 snapshot.forEach(doc => {
                     const docData = doc.data();
-                    const date = docData.date.toDate().toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: '2-digit' });
+                    const date = docData.date.toDate().toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' });
                     const row = `
                         <tr>
                             <td class="p-3">${docData.type === 'quotation' ? 'ใบเสนอราคา' : 'ใบเสร็จ'}</td>
@@ -492,9 +499,18 @@ onAuthStateChanged(auth, (user) => {
                 phone: document.getElementById('company-phone').value,
                 logoUrl: document.getElementById('company-logo-url').value,
             };
-            await setDoc(doc(db, getDocPath('app_settings', 'company_info')), settingsData, { merge: true });
-            alert('บันทึกข้อมูลบริษัทสำเร็จแล้ว');
-            showPage('dashboard');
+            if (!settingsData.name || !settingsData.address) {
+                alert('กรุณากรอกชื่อและที่อยู่บริษัท');
+                return;
+            }
+            try {
+                await setDoc(doc(db, getDocPath('app_settings', 'company_info')), settingsData, { merge: true });
+                alert('บันทึกข้อมูลบริษัทสำเร็จแล้ว');
+                showPage('dashboard');
+            } catch(error) {
+                console.error("Error saving settings:", error);
+                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูลตั้งค่า: ' + error.message);
+            }
         }
 
         // --- INVENTORY ---
@@ -503,14 +519,17 @@ onAuthStateChanged(auth, (user) => {
             form.reset();
             document.getElementById('inventory-id').value = '';
              if (id) {
+                document.getElementById('inventory-modal-title').textContent = 'แก้ไขสินค้า';
                 const product = inventoryCache.find(p => p.id === id);
                 if (product) {
                     document.getElementById('inventory-id').value = product.id;
-                    document.getElementById('product-code').value = product.code;
+                    document.getElementById('product-code').value = product.code || '';
                     document.getElementById('product-name').value = product.name;
                     document.getElementById('product-price').value = product.price;
                     document.getElementById('product-quantity').value = product.quantity;
                 }
+            } else {
+                 document.getElementById('inventory-modal-title').textContent = 'เพิ่มสินค้าใหม่';
             }
             document.getElementById('inventory-modal').classList.remove('hidden');
         }
@@ -521,27 +540,52 @@ onAuthStateChanged(auth, (user) => {
 
         async function saveInventoryItem(e) {
             e.preventDefault();
+            const name = document.getElementById('product-name').value;
+            const priceStr = document.getElementById('product-price').value;
+            const quantityStr = document.getElementById('product-quantity').value;
+
+            if (!name || !priceStr || !quantityStr) {
+                alert('กรุณากรอกข้อมูลสินค้าให้ครบทุกช่องที่มีเครื่องหมาย *');
+                return;
+            }
+            const price = parseFloat(priceStr);
+            const quantity = parseInt(quantityStr);
+            if (isNaN(price) || isNaN(quantity) || price < 0 || quantity < 0) {
+                alert('กรุณากรอกราคาและจำนวนให้เป็นตัวเลขที่ถูกต้อง');
+                return;
+            }
+
             const id = document.getElementById('inventory-id').value;
             const data = {
                 code: document.getElementById('product-code').value,
-                name: document.getElementById('product-name').value,
-                price: parseFloat(document.getElementById('product-price').value),
-                quantity: parseInt(document.getElementById('product-quantity').value)
+                name: name,
+                price: price,
+                quantity: quantity
             };
-
-            if (id) {
-                await updateDoc(doc(db, getCollectionPath('inventory'), id), data);
-            } else {
-                await addDoc(collection(db, getCollectionPath('inventory')), data);
+            
+            try {
+                if (id) {
+                    await updateDoc(doc(db, getCollectionPath('inventory'), id), data);
+                } else {
+                    await addDoc(collection(db, getCollectionPath('inventory')), data);
+                }
+                closeInventoryModal();
+                alert('บันทึกข้อมูลสินค้าสำเร็จ');
+            } catch (error) {
+                console.error("Error saving inventory item: ", error);
+                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูล: ' + error.message);
             }
-            closeInventoryModal();
-            alert('บันทึกข้อมูลสินค้าสำเร็จ');
         }
         
         window.deleteInventoryItem = async (id) => {
-             if (confirm('คุณต้องการลบสินค้านี้ใช่หรือไม่?')) {
-                await deleteDoc(doc(db, getCollectionPath('inventory'), id));
-                alert('ลบสินค้าสำเร็จ');
+             if (confirm('คุณต้องการลบสินค้านี้ใช่หรือไม่? การกระทำนี้ไม่สามารถย้อนกลับได้')) {
+                try {
+                    await deleteDoc(doc(db, getCollectionPath('inventory'), id));
+                    alert('ลบสินค้าสำเร็จ');
+                } catch (error) {
+                    console.error("Error deleting item:", error);
+                    alert("เกิดข้อผิดพลาดในการลบสินค้า: " + error.message);
+                }
             }
         }
         
@@ -551,14 +595,17 @@ onAuthStateChanged(auth, (user) => {
             form.reset();
             document.getElementById('customer-id').value = '';
             if (id) {
+                document.getElementById('customer-modal-title').textContent = 'แก้ไขข้อมูลลูกค้า';
                 const customer = customersCache.find(c => c.id === id);
                 if (customer) {
                     document.getElementById('customer-id').value = customer.id;
                     document.getElementById('customer-name').value = customer.name;
                     document.getElementById('customer-address').value = customer.address;
-                    document.getElementById('customer-phone').value = customer.phone;
-                    document.getElementById('customer-tax-id').value = customer.taxId;
+                    document.getElementById('customer-phone').value = customer.phone || '';
+                    document.getElementById('customer-tax-id').value = customer.taxId || '';
                 }
+            } else {
+                document.getElementById('customer-modal-title').textContent = 'เพิ่มลูกค้าใหม่';
             }
             document.getElementById('customer-modal').classList.remove('hidden');
         }
@@ -576,20 +623,33 @@ onAuthStateChanged(auth, (user) => {
                 phone: document.getElementById('customer-phone').value,
                 taxId: document.getElementById('customer-tax-id').value,
             };
-
-            if (id) {
-                await updateDoc(doc(db, getCollectionPath('customers'), id), data);
-            } else {
-                await addDoc(collection(db, getCollectionPath('customers')), data);
+            if (!data.name || !data.address) {
+                alert('กรุณากรอกชื่อและที่อยู่ของลูกค้า');
+                return;
             }
-            closeCustomerModal();
-            alert('บันทึกข้อมูลลูกค้าสำเร็จ');
+            try {
+                if (id) {
+                    await updateDoc(doc(db, getCollectionPath('customers'), id), data);
+                } else {
+                    await addDoc(collection(db, getCollectionPath('customers')), data);
+                }
+                closeCustomerModal();
+                alert('บันทึกข้อมูลลูกค้าสำเร็จ');
+            } catch (error) {
+                console.error("Error saving customer:", error);
+                alert('เกิดข้อผิดพลาดในการบันทึกข้อมูลลูกค้า: ' + error.message);
+            }
         }
 
         window.deleteCustomer = async (id) => {
             if (confirm('คุณต้องการลบข้อมูลลูกค้านี้ใช่หรือไม่?')) {
-                await deleteDoc(doc(db, getCollectionPath('customers'), id));
-                alert('ลบข้อมูลลูกค้าสำเร็จ');
+                try {
+                    await deleteDoc(doc(db, getCollectionPath('customers'), id));
+                    alert('ลบข้อมูลลูกค้าสำเร็จ');
+                } catch (error) {
+                    console.error("Error deleting customer:", error);
+                    alert("เกิดข้อผิดพลาดในการลบข้อมูลลูกค้า: " + error.message);
+                }
             }
         }
 
@@ -635,7 +695,7 @@ onAuthStateChanged(auth, (user) => {
                     <select class="item-product w-full p-2 border rounded" onchange="updateItemPrice(this)">${productOptions}</select>
                 </div>
                 <div class="col-span-2">
-                    <input type="number" class="item-quantity w-full p-2 border rounded" placeholder="จำนวน" min="1" value="1" onchange="updateTotals()">
+                    <input type="number" class="item-quantity w-full p-2 border rounded" placeholder="จำนวน" min="1" value="1" oninput="updateTotals()">
                 </div>
                 <div class="col-span-3 text-right">
                     <span class="item-total p-2">0.00</span>
@@ -653,8 +713,6 @@ onAuthStateChanged(auth, (user) => {
         }
 
         window.updateItemPrice = (selectElement) => {
-            const selectedOption = selectElement.options[selectElement.selectedIndex];
-            const price = selectedOption.dataset.price || 0;
             const row = selectElement.closest('.grid');
             row.querySelector('.item-quantity').value = 1;
             updateTotals();
@@ -682,200 +740,177 @@ onAuthStateChanged(auth, (user) => {
 
         async function saveDocument(e) {
             e.preventDefault();
-
-            const docType = document.getElementById('document-type').value;
-            const customerId = document.getElementById('document-customer').value;
-            if (!customerId) {
-                alert('กรุณาเลือกลูกค้า');
-                return;
-            }
-            const customer = customersCache.find(c => c.id === customerId);
-
-            const items = [];
-            let valid = true;
-            document.querySelectorAll('#document-items .grid').forEach(row => {
-                const productId = row.querySelector('.item-product').value;
-                const quantity = parseInt(row.querySelector('.item-quantity').value);
-                if (!productId || !quantity) {
-                    valid = false;
-                    return;
-                }
-                const product = inventoryCache.find(p => p.id === productId);
-
-                // For receipts, check stock
-                if (docType === 'receipt' && quantity > product.quantity) {
-                    alert(`สินค้า '${product.name}' มีไม่พอ (คงเหลือ ${product.quantity})`);
-                    valid = false;
-                    return;
-                }
-
-                items.push({
-                    productId: productId,
-                    name: product.name,
-                    code: product.code,
-                    quantity: quantity,
-                    price: product.price,
-                    total: product.price * quantity,
-                });
-            });
-
-            if (!valid || items.length === 0) {
-                 alert('กรุณากรอกข้อมูลรายการสินค้าให้ครบถ้วน');
-                 return;
-            }
-
-            const settingsRef = doc(db, getDocPath('app_settings', 'company_info'));
-            let newDocNumber;
+            let newDocNumber = '';
             try {
+                const docType = document.getElementById('document-type').value;
+                const customerId = document.getElementById('document-customer').value;
+                if (!customerId) {
+                    alert('กรุณาเลือกลูกค้า');
+                    return;
+                }
+                const customer = customersCache.find(c => c.id === customerId);
+
+                const items = [];
+                let valid = true;
+                document.querySelectorAll('#document-items .grid').forEach(row => {
+                    const productId = row.querySelector('.item-product').value;
+                    const quantity = parseInt(row.querySelector('.item-quantity').value);
+                    if (!productId || !quantity || quantity <= 0) {
+                        valid = false;
+                        return;
+                    }
+                    const product = inventoryCache.find(p => p.id === productId);
+                    if (docType === 'receipt' && quantity > product.quantity) {
+                        alert(`สินค้า '${product.name}' มีไม่พอ (คงเหลือ ${product.quantity})`);
+                        valid = false;
+                        return;
+                    }
+                    items.push({
+                        productId: productId, name: product.name, code: product.code,
+                        quantity: quantity, price: product.price, total: product.price * quantity,
+                    });
+                });
+                if (!valid || items.length === 0) {
+                     alert('กรุณาตรวจสอบรายการสินค้าให้ถูกต้อง');
+                     return;
+                }
+                const settingsRef = doc(db, getDocPath('app_settings', 'company_info'));
                 await runTransaction(db, async (transaction) => {
                     const settingsDoc = await transaction.get(settingsRef);
-                    if (!settingsDoc.exists()) {
-                        throw "Company settings not found!";
-                    }
+                    if (!settingsDoc.exists()) throw new Error("ไม่พบข้อมูลการตั้งค่าบริษัท");
                     const settingsData = settingsDoc.data();
                     if (docType === 'quotation') {
                         const lastNumber = settingsData.lastQuoteNumber || 0;
-                        newDocNumber = `QT-${(lastNumber + 1).toString().padStart(6, '0')}`;
+                        newDocNumber = `QT-${String(lastNumber + 1).padStart(6, '0')}`;
                         transaction.update(settingsRef, { lastQuoteNumber: lastNumber + 1 });
                     } else {
                         const lastNumber = settingsData.lastReceiptNumber || 0;
-                        newDocNumber = `INV-${(lastNumber + 1).toString().padStart(6, '0')}`;
+                        newDocNumber = `INV-${String(lastNumber + 1).padStart(6, '0')}`;
                         transaction.update(settingsRef, { lastReceiptNumber: lastNumber + 1 });
                     }
-
-                    // For receipts, update inventory stock
                     if (docType === 'receipt') {
                         for (const item of items) {
                             const productRef = doc(db, getCollectionPath('inventory'), item.productId);
                             const productDoc = await transaction.get(productRef);
-                            if (!productDoc.exists()) throw `Product ${item.name} not found!`;
+                            if (!productDoc.exists()) throw new Error(`ไม่พบสินค้า ${item.name} ในคลัง`);
                             const newQuantity = productDoc.data().quantity - item.quantity;
                             transaction.update(productRef, { quantity: newQuantity });
                         }
                     }
                 });
+                const docData = {
+                    number: newDocNumber, type: docType, date: new Date(document.getElementById('document-date').value),
+                    customer: { id: customer.id, name: customer.name, address: customer.address, taxId: customer.taxId },
+                    items: items,
+                    subtotal: parseFloat(document.getElementById('subtotal').innerText),
+                    vat: parseFloat(document.getElementById('vat').innerText),
+                    grandTotal: parseFloat(document.getElementById('grandtotal').innerText),
+                    companyInfo: companyInfo
+                };
+                const newDocRef = await addDoc(collection(db, getCollectionPath('documents')), docData);
+                if (docType === 'receipt') {
+                     await addDoc(collection(db, getCollectionPath('revenue')), {
+                        date: docData.date, amount: docData.grandTotal, documentId: newDocRef.id, documentNumber: docData.number
+                    });
+                }
+                alert(`สร้าง ${docType === 'quotation' ? 'ใบเสนอราคา' : 'ใบเสร็จ'} เลขที่ ${newDocNumber} สำเร็จ`);
+                closeDocumentModal();
+                viewDocument(newDocRef.id);
             } catch (error) {
-                console.error("Transaction failed: ", error);
-                alert("เกิดข้อผิดพลาดในการสร้างเอกสาร: " + error);
-                return;
+                console.error("Failed to save document: ", error);
+                alert("เกิดข้อผิดพลาดในการสร้างเอกสาร: " + error.message);
             }
-
-            const docData = {
-                number: newDocNumber,
-                type: docType,
-                date: new Date(document.getElementById('document-date').value),
-                customer: {
-                    id: customer.id,
-                    name: customer.name,
-                    address: customer.address,
-                    taxId: customer.taxId
-                },
-                items: items,
-                subtotal: parseFloat(document.getElementById('subtotal').innerText),
-                vat: parseFloat(document.getElementById('vat').innerText),
-                grandTotal: parseFloat(document.getElementById('grandtotal').innerText),
-                companyInfo: companyInfo // Snapshot of company info at time of creation
-            };
-
-            const newDocRef = await addDoc(collection(db, getCollectionPath('documents')), docData);
-            
-            if (docType === 'receipt') {
-                 await addDoc(collection(db, getCollectionPath('revenue')), {
-                    date: docData.date,
-                    amount: docData.grandTotal,
-                    documentId: newDocRef.id,
-                    documentNumber: docData.number
-                });
-            }
-
-            alert(`สร้าง ${docType === 'quotation' ? 'ใบเสนอราคา' : 'ใบเสร็จ'} เลขที่ ${newDocNumber} สำเร็จ`);
-            closeDocumentModal();
-            viewDocument(newDocRef.id);
         }
         
         // --- DOCUMENT VIEW & PRINT ---
         window.viewDocument = async (docId) => {
-            const docRef = doc(db, getCollectionPath('documents'), docId);
-            const docSnap = await getDoc(docRef);
-            if (!docSnap.exists()) {
-                alert('ไม่พบเอกสาร');
-                return;
-            }
-            const data = docSnap.data();
-            const printArea = document.getElementById('print-area');
-
-            let itemsHtml = '';
-            data.items.forEach(item => {
-                itemsHtml += `
-                    <tr class="border-b">
-                        <td class="p-2">${item.name}</td>
-                        <td class="p-2 text-center">${item.quantity}</td>
-                        <td class="p-2 text-right">${parseFloat(item.price).toFixed(2)}</td>
-                        <td class="p-2 text-right">${parseFloat(item.total).toFixed(2)}</td>
-                    </tr>
-                `;
-            });
-            
-            const thaiBathText = (number) => { /* Placeholder for number to Thai text function */ return `(${number.toFixed(2)} บาทถ้วน)`; };
-
-            printArea.innerHTML = `
-                <div class="p-4" style="border: 1px solid #ccc; width: 210mm; min-height: 297mm; margin: auto;">
-                    <div class="no-print mb-4 flex justify-end space-x-2">
-                        <button onclick="window.print()" class="bg-blue-500 text-white px-4 py-2 rounded">พิมพ์</button>
-                        <button onclick="closePrintView()" class="bg-gray-500 text-white px-4 py-2 rounded">ปิด</button>
-                    </div>
-                   <header class="text-center mb-8 relative">
-    <div id="auth-container" class="absolute top-0 right-0">
-         <!-- Login/Logout Button will appear here -->
-    </div>
-    <h1 class="text-4xl md:text-5xl font-bold text-gray-700">ระบบจัดการธุรกิจ</h1>
-    <p class="text-lg text-gray-500 mt-2">สร้างและจัดการเอกสารธุรกิจของคุณได้อย่างง่ายดาย</p>
-    <p id="user-info" class="text-sm text-gray-500 mt-2 hidden">
-        <span id="user-display-name"></span> (<span id="user-email"></span>)
-    </p>
-</header>
-                    <section class="border-t border-b py-4 mb-8">
-                        <h3 class="font-bold">ลูกค้า:</h3>
-                        <p>${data.customer.name}</p>
-                        <p style="white-space: pre-wrap;">ที่อยู่: ${data.customer.address}</p>
-                        <p>เลขประจำตัวผู้เสียภาษี: ${data.customer.taxId || '-'}</p>
-                    </section>
-                    <table class="w-full mb-8">
-                        <thead>
-                            <tr class="border-b-2 border-black">
-                                <th class="p-2 text-left">รายการ</th>
-                                <th class="p-2 text-center" style="width:15%">จำนวน</th>
-                                <th class="p-2 text-right" style="width:20%">ราคา/หน่วย</th>
-                                <th class="p-2 text-right" style="width:20%">รวมเงิน</th>
-                            </tr>
-                        </thead>
-                        <tbody>${itemsHtml}</tbody>
-                    </table>
-                    <footer class="flex justify-end">
-                        <div class="w-1/2">
-                            <table class="w-full">
-                                <tbody>
-                                    <tr><td class="p-2">ราคารวม</td><td class="p-2 text-right">${data.subtotal.toFixed(2)}</td></tr>
-                                    <tr><td class="p-2">ภาษีมูลค่าเพิ่ม 7%</td><td class="p-2 text-right">${data.vat.toFixed(2)}</td></tr>
-                                    <tr class="font-bold border-t-2 border-b-2 border-black"><td class="p-2">ยอดรวมสุทธิ</td><td class="p-2 text-right">${data.grandTotal.toFixed(2)}</td></tr>
-                                </tbody>
-                            </table>
-                             <div class="font-bold mt-2 text-center bg-gray-100 p-2">${thaiBathText(data.grandTotal)}</div>
+            try {
+                const docRef = doc(db, getCollectionPath('documents'), docId);
+                const docSnap = await getDoc(docRef);
+                if (!docSnap.exists()) {
+                    alert('ไม่พบเอกสาร');
+                    return;
+                }
+                const data = docSnap.data();
+                const printArea = document.getElementById('print-area');
+                let itemsHtml = '';
+                data.items.forEach(item => {
+                    itemsHtml += `
+                        <tr class="border-b">
+                            <td class="p-2">${item.name}</td>
+                            <td class="p-2 text-center">${item.quantity}</td>
+                            <td class="p-2 text-right">${parseFloat(item.price).toFixed(2)}</td>
+                            <td class="p-2 text-right">${parseFloat(item.total).toFixed(2)}</td>
+                        </tr>
+                    `;
+                });
+                const thaiBaht = (number) => { /* Placeholder */ return `(${number.toFixed(2)} บาทถ้วน)`; };
+                printArea.innerHTML = `
+                    <div class="p-4" style="width: 210mm; min-height: 297mm; margin: auto;">
+                        <div class="no-print mb-4 flex justify-end space-x-2">
+                            <button onclick="window.print()" class="bg-blue-500 text-white px-4 py-2 rounded">พิมพ์</button>
+                            <button onclick="closePrintView()" class="bg-gray-500 text-white px-4 py-2 rounded">ปิด</button>
                         </div>
-                    </footer>
-                </div>
-            `;
-            showPage('dashboard'); // Go back to dashboard conceptually
-            document.getElementById('app-container').classList.add('hidden');
-            printArea.classList.add('block');
-            printArea.classList.remove('hidden');
+                        <header class="flex justify-between items-start mb-8 border-b-2 pb-4">
+                             <div>
+                                ${data.companyInfo.logoUrl ? `<img src="${data.companyInfo.logoUrl}" alt="logo" class="h-20 mb-4">` : ''}
+                                <h2 class="text-xl font-bold">${data.companyInfo.name}</h2>
+                                <p class="text-sm" style="white-space: pre-wrap;">${data.companyInfo.address}</p>
+                                <p class="text-sm">โทร: ${data.companyInfo.phone}</p>
+                                <p class="text-sm">เลขประจำตัวผู้เสียภาษี: ${data.companyInfo.taxId}</p>
+                            </div>
+                            <div class="text-right">
+                                 <h1 class="text-2xl font-bold mb-2">${data.type === 'quotation' ? 'ใบเสนอราคา / Quotation' : 'ใบกำกับภาษี / ใบเสร็จรับเงิน'}</h1>
+                                 <p>เลขที่: ${data.number}</p>
+                                 <p>วันที่: ${data.date.toDate().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric'})}</p>
+                            </div>
+                        </header>
+                        <section class="border rounded-lg p-4 mb-8">
+                            <h3 class="font-bold">ข้อมูลลูกค้า</h3>
+                            <p>${data.customer.name}</p>
+                            <p style="white-space: pre-wrap;">ที่อยู่: ${data.customer.address}</p>
+                            <p>เลขประจำตัวผู้เสียภาษี: ${data.customer.taxId || '-'}</p>
+                        </section>
+                        <table class="w-full mb-8">
+                            <thead>
+                                <tr class="border-b-2 border-black bg-gray-100">
+                                    <th class="p-2 text-left">รายการ</th>
+                                    <th class="p-2 text-center" style="width:15%">จำนวน</th>
+                                    <th class="p-2 text-right" style="width:20%">ราคา/หน่วย</th>
+                                    <th class="p-2 text-right" style="width:20%">รวมเงิน</th>
+                                </tr>
+                            </thead>
+                            <tbody>${itemsHtml}</tbody>
+                        </table>
+                        <footer class="flex justify-between items-start pt-4">
+                            <div class="w-1/2">
+                                <!-- Placeholder for notes or payment info -->
+                            </div>
+                            <div class="w-1/2">
+                                <table class="w-full">
+                                    <tbody>
+                                        <tr><td class="p-2">ราคารวม</td><td class="p-2 text-right">${data.subtotal.toFixed(2)}</td></tr>
+                                        <tr><td class="p-2">ภาษีมูลค่าเพิ่ม 7%</td><td class="p-2 text-right">${data.vat.toFixed(2)}</td></tr>
+                                        <tr class="font-bold border-t-2 border-b-2 border-black text-lg"><td class="p-2">ยอดรวมสุทธิ</td><td class="p-2 text-right">${data.grandTotal.toFixed(2)}</td></tr>
+                                    </tbody>
+                                </table>
+                                 <div class="font-bold mt-2 text-center bg-gray-100 p-2 rounded-lg">${thaiBaht(data.grandTotal)}</div>
+                            </div>
+                        </footer>
+                    </div>
+                `;
+                document.getElementById('app-container').classList.add('hidden');
+                document.getElementById('print-area').style.display = 'block';
+            } catch(error) {
+                console.error("Error viewing document:", error);
+                alert("เกิดข้อผิดพลาดในการแสดงเอกสาร: " + error.message);
+            }
         }
         
         window.closePrintView = () => {
             const printArea = document.getElementById('print-area');
             printArea.innerHTML = '';
-            printArea.classList.add('hidden');
-            printArea.classList.remove('block');
+            printArea.style.display = 'none';
             document.getElementById('app-container').classList.remove('hidden');
         }
         
